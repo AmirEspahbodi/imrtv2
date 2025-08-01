@@ -95,6 +95,9 @@ def main(cfg):
         sys.exit(1)
     # --- End of new validation block ---
 
+    # change save path epecially for the model with current configuration, create unqie path for each model+configuration
+    cfg.dataset.save_path = f"{cfg.dataset.save_path}/{cfg.network.model}_{cfg.network.model_id}"
+    
     os.path.join(cfg.dataset.save_path, "final_weights.pt")
     os.path.join(cfg.dataset.save_path, "best_validation_weights.pt")
     confusion_matrix_path = os.path.join(cfg.dataset.save_path, f"final_weights_confusion_matrix.png")
@@ -193,7 +196,6 @@ def main(cfg):
         frozen_encoder,
         classifier_with_side_vits,
         test_dataset,
-        estimator,
         "final_weights",
         used_loss_function
     )
@@ -206,7 +208,6 @@ def main(cfg):
         frozen_encoder,
         classifier_with_side_vits,
         test_dataset,
-        estimator,
         "best_validation_weights",
         used_loss_function
     )
@@ -297,13 +298,7 @@ if __name__ == "__main__":
         nargs="+",
         help="Two numbers for ViT2 feature stride, each between 1 and 4 (e.g., 2 3).",
     )
-    parser.add_argument(
-        "--rd",
-        "--result_direcoty",
-        type=str,
-        required=True,
-        help="directory where the model and result will save.",
-    )
+
 
     args, unknown_args = parser.parse_known_args()
 
@@ -323,10 +318,9 @@ if __name__ == "__main__":
     if args.tp is not None:
         tp_str = args.tp
         hydra_overrides.append(f"base.training_plan={tp_str}")
-
-    if args.rd is not None:
-        rd_str = args.rd
-        hydra_overrides.append(f"dataset.save_path={rd_str}")
+    
+    model_id = f"btl{"".join(map(str, args.btl))}_v1fs{"".join(map(str, args.v1fs))}_v2fs{"".join(map(str, args.v2fs))}_tp{tp_str}"
+    hydra_overrides.append(f"+network.model_id={model_id}")
 
     sys.argv = [sys.argv[0]] + hydra_overrides + unknown_args
 

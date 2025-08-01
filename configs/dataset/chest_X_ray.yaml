@@ -1,7 +1,7 @@
 name: chest_X_ray
-data_path: /content/dataset/splited_chest_xray
-preload_path: /content/output/preload_chest_xray
-save_path: /content/output/labeled_chest_xray
+data_path: /home/amirh/work/medical_image_classification/splited_chest_xray
+preload_path: /home/amirh/work/medical_image_classification/preload_chest_xray
+save_path: /home/amirh/work/medical_image_classification/result
 input_size: 512 # image resolution for the LPM
 num_classes: 2 # number of classes
 mean: [0.5] # 'auto' or a list of three numbers for RGB

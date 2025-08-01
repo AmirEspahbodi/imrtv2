@@ -365,7 +365,7 @@ def save_plots(cfg, history):
     plt.grid(True)
 
     plt.tight_layout()
-    plot_path = os.path.join(save_path_dir, f"{model_name}_performance_plot.png")
+    plot_path = os.path.join(save_path_dir, f"performance_plots.png")
     plt.savefig(plot_path)
     plt.close()
     print(f"Performance plots saved to {plot_path}")

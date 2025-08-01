@@ -5,10 +5,12 @@ import torch
 import torch.nn as nn
 from tqdm import tqdm
 from torch.utils.data import DataLoader
+from typing import List
+import matplotlib.pyplot as plt
 
-from src.utils.func import *
-from src.loss import *
-from src.scheduler import *
+from src.utils.func import select_target_type, print_msg
+from src.loss import KappaLoss, FocalLoss, WarpedLoss
+from src.scheduler import LossWeightsScheduler
 
 
 def train(cfg, frozen_encoder, model, train_dataset, val_dataset, estimator):
@@ -25,6 +27,10 @@ def train(cfg, frozen_encoder, model, train_dataset, val_dataset, estimator):
     # start training
     model.train()
     max_indicator = 0
+    history_train_loss = []
+    history_train_accuracy = []
+    history_validation_loss = []
+    history_validation_accuracy = []
     for epoch in range(start_epoch, cfg.train.epochs):
         # update loss weights
         if loss_weight_scheduler:
@@ -33,6 +39,7 @@ def train(cfg, frozen_encoder, model, train_dataset, val_dataset, estimator):
 
         epoch_loss = 0
         estimator.reset()
+        avg_loss=0
 
         # Create tqdm progress bar with total iterations and proper description
         if cfg.base.progress:
@@ -82,7 +89,6 @@ def train(cfg, frozen_encoder, model, train_dataset, val_dataset, estimator):
 
             epoch_loss += loss.item()
             avg_loss = epoch_loss / (step + 1)
-
             estimator.update(y_pred, y)
 
             # Update progress bar with detailed information
@@ -99,14 +105,19 @@ def train(cfg, frozen_encoder, model, train_dataset, val_dataset, estimator):
         )
         print("Training metrics:", scores_txt)
 
+        train_loss = avg_loss
+        train_acc = train_scores["acc"]
+
         if epoch % cfg.train.save_interval == 0:
             save_name = "checkpoint.pt"
             save_checkpoint(cfg, model, epoch, optimizer, save_name)
 
         # validation performance
         if epoch % cfg.train.eval_interval == 0:
-            eval(cfg, frozen_encoder, model, val_loader, estimator, device)
+            val_loss = eval(cfg, frozen_encoder, model, val_loader, estimator, loss_function, device)
+            
             val_scores = estimator.get_scores(6)
+            validation_acc = val_scores["acc"]
             scores_txt = [
                 "{}: {}".format(metric, score) for metric, score in val_scores.items()
             ]
@@ -118,22 +129,38 @@ def train(cfg, frozen_encoder, model, train_dataset, val_dataset, estimator):
                 save_name = "best_validation_weights.pt"
                 save_weights(cfg, model, save_name)
                 max_indicator = indicator
+        history_train_loss.append(train_loss)
+        history_train_accuracy.append(train_acc)
+        history_validation_loss.append(val_loss)
+        history_validation_accuracy.append(validation_acc)
+    
+    diagrams_saave_path = os.path.join(cfg.dataset.save_path, "performance_plots.png")
 
+    plot_training_history(
+        history_train_loss,
+        history_train_accuracy,
+        history_validation_loss,
+        history_validation_accuracy,
+        diagrams_saave_path
+    ) 
+    
     save_name = "final_weights.pt"
     save_weights(cfg, model, save_name)
 
 
-def eval(cfg, frozen_encoder, model, dataloader, estimator, device):
+def eval(cfg, frozen_encoder, model, dataloader, estimator, loss_function, device):
     model.eval()
     torch.set_grad_enabled(False)
+    
+    total_loss = 0.0
+    total_batches = 0
 
     estimator.reset()
     for test_data in dataloader:
         if cfg.dataset.preload_path:
             X_side, key_states, value_states, y = test_data
-            key_states, value_states = key_states.to(device), value_states.to(device)
-            key_states = key_states.transpose(0, 1)
-            value_states = value_states.transpose(0, 1)
+            key_states = key_states.to(device).transpose(0, 1)
+            value_states = value_states.to(device).transpose(0, 1)
         else:
             X_lpm, X_side, y = test_data
             X_lpm = X_lpm.to(device)
@@ -146,10 +173,20 @@ def eval(cfg, frozen_encoder, model, dataloader, estimator, device):
         y = select_target_type(y, cfg.train.criterion)
 
         y_pred = model(X_side, key_states, value_states)
+        loss = loss_function(y_pred, y)
+
+        total_loss += loss.item()
+        total_batches += 1
+
         estimator.update(y_pred, y)
+
+    avg_loss = total_loss / total_batches if total_batches > 0 else 0.0
 
     model.train()
     torch.set_grad_enabled(True)
+    
+    return avg_loss
+
 
 
 # define data loader
@@ -301,3 +338,40 @@ def resume(cfg, model, optimizer):
     else:
         print_msg("No checkpoint found at {}".format(checkpoint))
         raise FileNotFoundError("No checkpoint found at {}".format(checkpoint))
+
+
+def plot_training_history(
+    history_train_loss: List[float],
+    history_train_accuracy: List[float],
+    history_validation_loss: List[float],
+    history_validation_accuracy: List[float],
+    save_path: str
+) -> None:
+    # Determine number of epochs
+    epochs = list(range(1, len(history_train_loss) + 1))
+
+    # Create a figure with two subplots: loss and accuracy
+    fig, (ax_loss, ax_acc) = plt.subplots(1, 2, figsize=(12, 5))
+
+    # Plot loss
+    ax_loss.plot(epochs, history_train_loss, label='Training Loss', marker='o')
+    ax_loss.plot(epochs, history_validation_loss, label='Validation Loss', marker='o')
+    ax_loss.set_title('Loss over Epochs')
+    ax_loss.set_xlabel('Epoch')
+    ax_loss.set_ylabel('Loss')
+    ax_loss.legend()
+    ax_loss.grid(True)
+
+    # Plot accuracy
+    ax_acc.plot(epochs, history_train_accuracy, label='Training Accuracy', marker='o')
+    ax_acc.plot(epochs, history_validation_accuracy, label='Validation Accuracy', marker='o')
+    ax_acc.set_title('Accuracy over Epochs')
+    ax_acc.set_xlabel('Epoch')
+    ax_acc.set_ylabel('Accuracy')
+    ax_acc.legend()
+    ax_acc.grid(True)
+
+    # Improve layout and save
+    plt.tight_layout()
+    plt.savefig(save_path)
+    plt.close(fig)
