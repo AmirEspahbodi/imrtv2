@@ -29,45 +29,39 @@ def get_headers(sheet: Worksheet) -> List[str]:
 
 
 def process_rows(
-    sheet: Worksheet, headers: List[str]
-) -> List[Dict[str, Any]]:
-    processed_data: List[Dict[str, Any]] = []
+    sheet: Worksheet,
+    headers: List[str],
+    workbook: Workbook,
+    path: Path,
+) -> None:
     acc_index = headers.index("acc")
 
     for row in sheet.iter_rows(min_row=2):
-        # Build a dict of the current row
+        # Map row values to header keys
         row_data: Dict[str, Any] = {header: row[idx].value for idx, header in enumerate(headers)}
 
-        # Assign a random accuracy
+        # Generate and assign a random accuracy
         random_acc = round(random.uniform(0, 1), 4)
         row_data["acc"] = random_acc
-        # Write it back
         row[acc_index].value = random_acc
 
-        logging.info(f"Row {row[0].row} data: {row_data}")
-        processed_data.append(row_data)
-
-    return processed_data
-
-
-def save_workbook(workbook: Workbook, path: Path) -> None:
-    logging.info(f"Saving updated workbook to {path}")
-    workbook.save(path)
+        # Log and save immediately on change
+        logging.info(f"Row {row[0].row} updated: {row_data}")
+        workbook.save(path)
+        logging.debug(f"Workbook saved after updating row {row[0].row}")
 
 
 def main() -> None:
     setup_logging()
 
     parser = argparse.ArgumentParser(
-        description="Process an Excel file, read rows into dicts, assign random accuracy and save results."
+        description="Process an Excel file: assign random accuracy per row and save changes immediately."
     )
     parser.add_argument(
-        "input", type=Path, help="Path to the input Excel file (.xlsx)"
+        "input", type=Path, help="Path to the Excel file (.xlsx) to process"
     )
-
     args = parser.parse_args()
     input_path = args.input
-    output_path = args.output or args.input
 
     wb = load_workbook(input_path)
     ws = wb.active
@@ -77,8 +71,7 @@ def main() -> None:
         logging.error("Header 'acc' not found in the Excel sheet.")
         return
 
-    process_rows(ws, headers)
-    save_workbook(wb, output_path)
+    process_rows(ws, headers, wb, input_path)
 
 
 if __name__ == "__main__":
