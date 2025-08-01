@@ -64,9 +64,6 @@ def main() -> None:
     parser.add_argument(
         "input", type=Path, help="Path to the input Excel file (.xlsx)"
     )
-    parser.add_argument(
-        "output", type=Path, nargs="?", help="Path to save the updated Excel file (.xlsx)."
-    )
 
     args = parser.parse_args()
     input_path = args.input
