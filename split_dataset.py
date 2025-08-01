@@ -179,8 +179,8 @@ def main():
     )
     args = parser.parse_args()
 
-    original_dataset = "/home/amirh/work/medical_image_classification/labeled-chest-xray-images"
-    target_dataset = "/home/amirh/work/medical_image_classification/splited_chest_xray"
+    original_dataset = "/content/dataset/chest_xray"
+    target_dataset = "/content/dataset/splited_chest_xray"
 
     if os.path.exists(target_dataset):
         shutil.rmtree(target_dataset)
