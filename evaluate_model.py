@@ -49,17 +49,31 @@ def evaluate_model(cfg, frozen_encoder, model, dataloader, loss_function, device
         num_classes = sample_out.shape[1]
 
     # 2. Setup metrics on device
-    acc_metric  = Accuracy(num_classes=num_classes, average='weighted').to(device)
-    prec_metric = Precision(num_classes=num_classes, average='weighted', zero_division=0).to(device)
-    rec_metric  = Recall(num_classes=num_classes, average='weighted', zero_division=0).to(device)
-    f1_metric   = F1Score(num_classes=num_classes, average='weighted', zero_division=0).to(device)
-    cm_metric   = ConfusionMatrix(num_classes=num_classes).to(device)
-
     if task.startswith("binary"):
-        # expect raw logits for AUROC
-        auroc_metric = AUROC(task="binary", input='logits').to(device)
+        # binary classification metrics
+        acc_metric  = Accuracy(task="binary", average="weighted").to(device)
+        prec_metric = Precision(task="binary", average="weighted", zero_division=0).to(device)
+        rec_metric  = Recall(task="binary", average="weighted", zero_division=0).to(device)
+        f1_metric   = F1Score(task="binary", average="weighted", zero_division=0).to(device)
+        cm_metric   = ConfusionMatrix(task="binary").to(device)
+        # AUROC for raw logits
+        auroc_metric = AUROC(task="binary", input="logits").to(device)
+
     else:
-        auroc_metric = AUROC(num_classes=num_classes, average='weighted', multi_class='ovo').to(device)
+        # multiclass classification metrics
+        acc_metric  = Accuracy(task="multiclass", num_classes=num_classes, average="weighted").to(device)
+        prec_metric = Precision(task="multiclass", num_classes=num_classes, average="weighted", zero_division=0).to(device)
+        rec_metric  = Recall(task="multiclass", num_classes=num_classes, average="weighted", zero_division=0).to(device)
+        f1_metric   = F1Score(task="multiclass", num_classes=num_classes, average="weighted", zero_division=0).to(device)
+        cm_metric   = ConfusionMatrix(task="multiclass", num_classes=num_classes).to(device)
+        # AUROC for probability vectors
+        auroc_metric = AUROC(
+            task="multiclass",
+            num_classes=num_classes,
+            average="weighted",
+            multi_class="ovo"
+        ).to(device)
+
 
     total_loss = 0.0
     total_samples = 0
