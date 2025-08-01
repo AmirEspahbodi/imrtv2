@@ -98,25 +98,25 @@ def main(cfg):
     # change save path epecially for the model with current configuration, create unqie path for each model+configuration
     cfg.dataset.save_path = f"{cfg.dataset.save_path}/{cfg.network.model}_{cfg.network.model_id}"
     
-    os.path.join(cfg.dataset.save_path, "final_weights.pt")
-    os.path.join(cfg.dataset.save_path, "best_validation_weights.pt")
-    confusion_matrix_path = os.path.join(cfg.dataset.save_path, f"final_weights_confusion_matrix.png")
-    save_confusion_matrix(np.array([[10, 1, 2],[3, 15, 4],[1, 3, 20]]), confusion_matrix_path)
-    finall_resul_path = os.path.join(cfg.dataset.save_path, f"final_weights_results.json")
+    # os.path.join(cfg.dataset.save_path, "final_weights.pt")
+    # os.path.join(cfg.dataset.save_path, "best_validation_weights.pt")
+    # confusion_matrix_path = os.path.join(cfg.dataset.save_path, f"final_weights_confusion_matrix.png")
+    # save_confusion_matrix(np.array([[10, 1, 2],[3, 15, 4],[1, 3, 20]]), confusion_matrix_path)
+    # finall_resul_path = os.path.join(cfg.dataset.save_path, f"final_weights_results.json")
     
-    with open(finall_resul_path, 'w') as fp:
-        json.dump(
-            {
-                "acc":98.1,
-                "f1":98.1,
-                "auc":98.1,
-                "precision":98.1,
-                "recall":98.1
-            },
-            fp, 
-            indent=4
-        )
-    exit(0)
+    # with open(finall_resul_path, 'w') as fp:
+    #     json.dump(
+    #         {
+    #             "acc":98.1,
+    #             "f1":98.1,
+    #             "auc":98.1,
+    #             "precision":98.1,
+    #             "recall":98.1
+    #         },
+    #         fp, 
+    #         indent=4
+    #     )
+    # exit(0)
         
     # create folder
     save_path = cfg.dataset.save_path
