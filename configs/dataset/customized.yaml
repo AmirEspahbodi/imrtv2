@@ -4,9 +4,9 @@ name: customized
 # preload_path: /kaggle/working/covid_preload_data
 # save_path: /kaggle/working/covid_runs
 
-data_path: //home/amirh/work/medical_image_classification/my-dataset-split # path to the dataset
-preload_path: /home/amirh/work/medical_image_classification/customized_preload_data # path to the preloaded data
-save_path: /home/amirh/work/medical_image_classification/my_dataset # path to save the experiment results
+data_path: /content/dataset/splited_chest_xray # path to the dataset
+preload_path: /content/dataset/preload_chest_xray # path to the preloaded data
+save_path: /content/output/result # path to save the experiment results
 input_size: 512 # image resolution for the LPM
 num_classes: 2 # number of classes
 mean: [0.485, 0.456, 0.406] # 'auto' or a list of three numbers for RGB
