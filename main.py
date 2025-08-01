@@ -319,7 +319,7 @@ if __name__ == "__main__":
         tp_str = args.tp
         hydra_overrides.append(f"base.training_plan={tp_str}")
     
-    model_id = f"btl{"".join(map(str, args.btl))}_v1fs{"".join(map(str, args.v1fs))}_v2fs{"".join(map(str, args.v2fs))}_tp{tp_str}"
+    model_id = f"btl{''.join(map(str, args.btl))}_v1fs{''.join(map(str, args.v1fs))}_v2fs{''.join(map(str, args.v2fs))}_tp{tp_str}"
     hydra_overrides.append(f"+network.model_id={model_id}")
 
     sys.argv = [sys.argv[0]] + hydra_overrides + unknown_args
