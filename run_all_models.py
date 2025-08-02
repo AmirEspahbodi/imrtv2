@@ -69,12 +69,12 @@ def process_rows(
         tp = row_data["training_plan"].strip()
         
         model_id = f"btl{''.join(btl)}_v1fs{''.join(v1fs)}_v2fs{''.join(v2fs)}_tp{tp}"
-        args = f" dataset=chest_X_ray network=coatnet_3 --btl {' '.join(btl)} --v1fs {' '.join(v1fs)} --v2fs {' '.join(v2fs)} --tp {tp}"
+        args = f" dataset=chest_X_ray network={model} --btl {' '.join(btl)} --v1fs {' '.join(v1fs)} --v2fs {' '.join(v2fs)} --tp {tp}"
         
         
         resutl_path_value = row[resutl_path_index].value
         if resutl_path_value is not None:
-            print(f"{row[0].row}==> this model is calculated {model}{model_id} resutl path is {resutl_path_value} <==")
+            print(f"{row[0].row}==> this model is calculated {model}_{model_id} resutl path is {resutl_path_value} <==")
             continue
     
         # print(" >> start check <<")
@@ -86,8 +86,8 @@ def process_rows(
         # print(f"    btl = {btl}")
         # print(f"    v1fs = {v1fs}")
         # print(f"    v2fs = {v2fs}")
-        # print(f"    model_id = {model_id}")
-        # print(f"    args = {args}")
+        print(f"    model_id = {model_id}")
+        print(f"    args = {args}")
         # print(" >> end check <<")
 
         ret = os.system(
