@@ -102,7 +102,7 @@ def main(cfg):
     os.path.join(cfg.dataset.save_path, "best_validation_weights.pt")
     confusion_matrix_path = os.path.join(cfg.dataset.save_path, f"final_weights_confusion_matrix.png")
     save_confusion_matrix(np.array([[10, 1, 2],[3, 15, 4],[1, 3, 20]]), confusion_matrix_path)
-    best_validation__resul_path = os.path.join(cfg.dataset.save_path, f"best_validation_weights_result.json")
+    best_validation__resul_path = os.path.join(cfg.dataset.save_path, f"best_validation_weights_results.json")
     finall_resul_path = os.path.join(cfg.dataset.save_path, f"final_weights_results.json")
     
     with open(finall_resul_path, 'w') as fp:
@@ -247,7 +247,7 @@ def save_metics(cfg, frozen_encoder, model, dataset, model_name, used_loss_funct
     confusion_matrix_path = os.path.join(cfg.dataset.save_path, f"{model_name}_confusion_matrix.png")
     save_confusion_matrix(confusion_matrix, confusion_matrix_path)
     
-    finall_resul_path = os.path.join(cfg.dataset.save_path, f"{model_name}_result.json")
+    finall_resul_path = os.path.join(cfg.dataset.save_path, f"{model_name}_results.json")
     
     with open(finall_resul_path, 'w') as fp:
         json.dump(
