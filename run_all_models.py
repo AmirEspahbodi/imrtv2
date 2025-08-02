@@ -10,7 +10,6 @@ from openpyxl.worksheet.worksheet import Worksheet
 
 
 
-
 def load_workbook(path: Path) -> Workbook:
     print(f"Loading workbook from {path}")
     return openpyxl.load_workbook(path)
