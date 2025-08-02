@@ -40,7 +40,6 @@ def evaluate_model(cfg, frozen_encoder, model, dataloader, loss_function, device
     Xs, ks, vs, y_sample, _ = prepare_batch(sample_batch, cfg, frozen_encoder, device)
     with torch.no_grad():
         sample_out = model(Xs, ks, vs)
-    print(f"sample_out.shape = {sample_out.shape}")
 
     if sample_out.ndim == 1 or sample_out.shape[1] == 1:
         task = "binary-single-logit"

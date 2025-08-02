@@ -10,7 +10,7 @@ base:
   device: cuda:0
   random_seed: -1 # set to -1 to disable random seed
   cudnn_deterministic: false # set to True to turn on CUDNN deterministic setting, but it may slow down your training
-  overwrite: false # overwrite save_path
+  overwrite: true # overwrite save_path
   progress: true # real-time metric display, output cannot be redirected
   checkpoint: null # path to the checkpoint to resume
   training_plan: A # A , B and C
