@@ -223,7 +223,9 @@ def initialize_loss(cfg, train_dataset):
             weight = torch.as_tensor(
                 loss_weight, dtype=torch.float32, device=cfg.base.device
             )
-        loss = nn.CrossEntropyLoss(weight=weight)
+        loss = nn.CrossEntropyLoss(
+            weight=weight, label_smoothing=cfg.train.label_smoothing
+        )
     elif criterion == "mean_square_error":
         loss = nn.MSELoss()
     elif criterion == "mean_absolute_error":

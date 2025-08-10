@@ -1042,10 +1042,7 @@ class CoAtNetSideViTClassifier_5(nn.Module):
         )
 
     def forward(self, x: torch.Tensor, key_states, value_states) -> torch.Tensor:
-        x_backbone = F.interpolate(
-            x, size=(224, 224), mode="bilinear", align_corners=False
-        )
-        features = self.cnn_backbone(x_backbone)
+        features = self.cnn_backbone(x)
 
         # Prepare 3-channel processed features
         # proc_feat1 = self.proj1(self.gate1(f1, f2))
