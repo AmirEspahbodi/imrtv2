@@ -2,11 +2,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import timm
-from torchvision import models
-from typing import Any, Tuple, Optional
-from timm.models.layers import DropPath, create_conv2d
-from timm.layers.std_conv import StdConv2d
-from timm.layers import DropBlock2d, Mlp
+from typing import Any
+from timm.models.layers import DropPath
+from timm.layers import DropBlock2d
 from typing import List
 
 
@@ -769,13 +767,6 @@ class CoAtNetSideViTClassifier_3_reg(nn.Module):
         reconstructed_img = self.unpatchify(patches_reshaped)
         return reconstructed_img
 
-    def reconstruct_from_patches(self, patches, height, width):
-        """Helper function to turn patches back into an image-like tensor."""
-        patches_reshaped = patches.transpose(1, 2).reshape(
-            patches.shape[0], self.patch_dim, height, width
-        )
-        reconstructed_img = self.unpatchify(patches_reshaped)
-        return reconstructed_img
 
 
 #####################################################################################################################################################################
@@ -1013,7 +1004,6 @@ class CoAtNetSideViTClassifier_5(nn.Module):
         stream2_dim = [feat_dims[i] for i in self.vit2_feature_strame]
 
         NUM_VIT_STREAMS = 2
-        in_ch = 3
 
         # --- Feature Preparation Paths ---
         if len(self.vit1_feature_strame) == 2:
@@ -1056,7 +1046,6 @@ class CoAtNetSideViTClassifier_5(nn.Module):
             x, size=(224, 224), mode="bilinear", align_corners=False
         )
         features = self.cnn_backbone(x_backbone)
-        f1, f2, f3, f4 = features[0], features[1], features[2], features[3]
 
         # Prepare 3-channel processed features
         # proc_feat1 = self.proj1(self.gate1(f1, f2))

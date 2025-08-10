@@ -9,7 +9,7 @@ import hydra
 import numpy as np
 from omegaconf import OmegaConf, ListConfig
 
-from src.utils.func import *
+from src.utils.func import print_msg, add_path_suffix, DataLoader
 from train_a import train as train_a
 from train_b import train as train_b
 from train_c import train as train_c
@@ -17,15 +17,12 @@ from src.utils.metrics import Estimator
 from data.builder import generate_dataset
 from src.builder import generate_model, load_weights
 from src.models import (
-    CoAtNetSideViTClassifier_1,
-    CoAtNetSideViTClassifier_2,
     CoAtNetSideViTClassifier_3,
     CoAtNetSideViTClassifier_3_reg,
     CoAtNetSideViTClassifier_4,
     CoAtNetSideViTClassifier_5,
 )
 
-import numpy as np
 from evaluate_model import evaluate_model
 
 
@@ -85,9 +82,9 @@ def main(cfg):
             validation_passed = False
     if hasattr(cfg.base, "training_plan"):
         training_plan = cfg.base.training_plan.strip()
-        if not training_plan in ["A", "B", "C"]:
+        if  training_plan not in ["A", "B", "C"]:
             print(
-                f"ERROR: Invalid 'training_plan': {training_plan.strip()}. Must be two str, just A, B, A."
+                f"ERROR: Invalid 'training_plan': {training_plan.strip()}. Must be two str, just A, B, C."
             )
             validation_passed = False
     if not validation_passed:
