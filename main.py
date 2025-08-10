@@ -29,7 +29,7 @@ import numpy as np
 from evaluate_model import evaluate_model
 
 
-@hydra.main(config_path="configs", config_name="config")
+@hydra.main(config_path="configs", config_name="config", version_base="1.1")
 def main(cfg):
     # print configuration
     print_msg("LOADING CONFIG FILE")
@@ -96,7 +96,7 @@ def main(cfg):
     # --- End of new validation block ---
 
     # change save path epecially for the model with current configuration, create unqie path for each model+configuration
-    cfg.dataset.save_path = f"{cfg.dataset.save_path}/{cfg.network.model}_{cfg.network.model_id}"
+    cfg.dataset.save_path = f"{cfg.dataset.save_path}\\{cfg.network.model}_{cfg.network.model_id}"
     
     # create folder
     save_path = cfg.dataset.save_path
@@ -168,17 +168,6 @@ def main(cfg):
         estimator=estimator,
     )
 
-    print("This is the performance of the final model:")
-    checkpoint = os.path.join(cfg.dataset.save_path, "final_weights.pt")
-    load_weights(classifier_with_side_vits, checkpoint)
-    save_metics(
-        cfg,
-        frozen_encoder,
-        classifier_with_side_vits,
-        test_dataset,
-        "final_weights",
-        used_loss_function
-    )
 
     print("This is the performance of the best validation model:")
     checkpoint = os.path.join(cfg.dataset.save_path, "best_validation_weights.pt")
@@ -192,6 +181,17 @@ def main(cfg):
         used_loss_function
     )
 
+    print("This is the performance of the final model:")
+    checkpoint = os.path.join(cfg.dataset.save_path, "final_weights.pt")
+    load_weights(classifier_with_side_vits, checkpoint)
+    save_metics(
+        cfg,
+        frozen_encoder,
+        classifier_with_side_vits,
+        test_dataset,
+        "final_weights",
+        used_loss_function
+    )
 
 def set_seed(seed, deterministic=False):
     random.seed(seed)
@@ -210,7 +210,7 @@ def save_metics(cfg, frozen_encoder, model, dataset, model_name, used_loss_funct
         pin_memory=cfg.train.pin_memory,
     )
 
-    acc, f1, auc, precision, recall, confusion_matrix = evaluate_model(cfg, frozen_encoder, model, dataloader, cfg.base.device, used_loss_function)
+    acc, f1, auc, precision, recall, confusion_matrix = evaluate_model(cfg, frozen_encoder, model, dataloader, used_loss_function, cfg.base.device)
     confusion_matrix_path = os.path.join(cfg.dataset.save_path, f"{model_name}_confusion_matrix.png")
     save_confusion_matrix(confusion_matrix, confusion_matrix_path)
     

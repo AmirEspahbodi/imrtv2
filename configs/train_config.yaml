@@ -1,12 +1,12 @@
 train:
-  epochs: 15
-  batch_size: 16
-  num_workers: 4
+  epochs: 5
+  batch_size: 8
+  num_workers: 3
   criterion: cross_entropy # available criterions are list in 'criterion_args' below
   loss_weight: dynamic # null / balance / dynamic / list with shape num_classes. Weights for loss function. Don't use it with weighted sampling!
   loss_weight_decay_rate: 0.0001 # if loss_weights is dynamic, loss weight will decay from balance to equivalent weights
   warmup_epochs: 2 # set to 0 to disable warmup
-  metrics: [acc, f1, auc, precision, recall, kappa] # available metrics are list in utils.metrics
+  metrics: [acc, f1, auc, precision, recall] # available metrics are list in utils.metrics
   indicator: acc # indicator for best model selection in validation set
   save_interval: 5 # the epoch interval of saving model
   eval_interval: 1 # the epoch interval of evaluating model on val dataset
@@ -16,9 +16,9 @@ train:
   # for plan B
   early_stopping_patience: 15
   label_smoothing: 0.1
-  swa_start_epoch: 8
+  swa_start_epoch: 10
 
   # for plan A
   # warmup_epochs: 2
   # label_smoothing: 0.1
-  sam_start_epoch: 4
+  sam_start_epoch: 6

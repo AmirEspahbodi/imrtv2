@@ -12,7 +12,7 @@ from src.utils.func import *
 from src.builder import build_frozen_encoder
 
 
-@hydra.main(config_path="configs", config_name="config")
+@hydra.main(config_path="configs", config_name="config", version_base="1.1")
 def main(cfg):
     if os.path.exists(cfg.dataset.preload_path):
         print_msg(

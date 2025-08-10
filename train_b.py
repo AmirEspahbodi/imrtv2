@@ -258,7 +258,7 @@ def train(cfg, frozen_encoder, model, train_dataset, val_dataset, estimator):
     # Generate and save performance plots
     save_plots(history, cfg.dataset.save_path)
 
-    return model
+    return loss_function
 
 
 # --- 4. Helper Functions ---

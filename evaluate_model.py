@@ -7,7 +7,7 @@ from torchmetrics import (
     AUROC,
     ConfusionMatrix,
 )
-from src.utils.func import *
+from src.utils.func import select_target_type
 
 def prepare_batch(batch, cfg, frozen_encoder, device):
     """Prepares a single batch of data, moving it to the correct device."""
@@ -37,9 +37,9 @@ def evaluate_model(cfg, frozen_encoder, model, dataloader, loss_function, device
 
     # 1. “Dry run” first batch to infer binary vs. multiclass
     sample_batch = next(iter(dataloader))
-    Xs, ks, vs, y_sample, _ = prepare_batch(sample_batch, cfg, frozen_encoder, device)
+    X_side, key_states, value_states, y_true, _ = prepare_batch(sample_batch, cfg, frozen_encoder, device)
     with torch.no_grad():
-        sample_out = model(Xs, ks, vs)
+        sample_out = model(X_side, key_states, value_states)
 
     if sample_out.ndim == 1 or sample_out.shape[1] == 1:
         task = "binary-single-logit"
@@ -125,4 +125,4 @@ def evaluate_model(cfg, frozen_encoder, model, dataloader, loss_function, device
     if just_loss_acc:
         return avg_loss, acc
     else:
-        return avg_loss, acc, f1, auc, precision, recall, cm_tensor.cpu().numpy()
+        return acc, f1, auc, precision, recall, cm_tensor.cpu().numpy()

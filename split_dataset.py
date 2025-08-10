@@ -25,7 +25,7 @@ def apply_medical_augmentation(image):
     """
     techniques = ["rotate", "scale", "contrast", "noise"]
     # Choose between 1 and 4 techniques (allowing repeats)
-    selected = random.choices(techniques, k=random.randint(1, 4))
+    selected = random.choices(techniques, k=random.randint(1, 3))
 
     augmented = image
     for tech in selected:
@@ -179,8 +179,8 @@ def main():
     )
     args = parser.parse_args()
 
-    original_dataset = "/content/dataset/chest_xray"
-    target_dataset = "/content/dataset/splited_chest_xray"
+    original_dataset = "E:\medical_image_classification\labeled-chest-xray-images"
+    target_dataset = "E:\medical_image_classification\splited_chest_xray"
 
     if os.path.exists(target_dataset):
         shutil.rmtree(target_dataset)

@@ -19,65 +19,61 @@ def train(cfg, frozen_encoder, model, train_dataset, val_dataset, estimator):
     loss_function, loss_weight_scheduler = initialize_loss(cfg, train_dataset)
     train_loader, val_loader = initialize_dataloader(cfg, train_dataset, val_dataset)
 
-    # check resume
+    # resume if checkpoint exists
     start_epoch = 0
     if cfg.base.checkpoint:
         start_epoch = resume(cfg, model, optimizer)
 
-    # start training
     model.train()
-    max_indicator = 0
+    max_indicator = float('-inf')
     history_train_loss = []
     history_train_accuracy = []
     history_validation_loss = []
     history_validation_accuracy = []
+
     for epoch in range(start_epoch, cfg.train.epochs):
-        # update loss weights
+        # update dynamic loss weights
         if loss_weight_scheduler:
-            weight = loss_weight_scheduler.step()
-            loss_function.weight = weight.to(device)
+            w = loss_weight_scheduler.step()
+            loss_function.weight = w.to(device)
 
-        epoch_loss = 0
+        epoch_loss = 0.0
         estimator.reset()
-        avg_loss=0
 
-        # Create tqdm progress bar with total iterations and proper description
+        loader = train_loader
         if cfg.base.progress:
-            progress = tqdm(
+            loader = tqdm(
                 train_loader,
-                desc=f"Epoch {epoch + 1}/{cfg.train.epochs}",
+                desc=f"Epoch {epoch+1}/{cfg.train.epochs}",
                 total=len(train_loader),
                 unit="batch",
                 leave=True,
-                dynamic_ncols=True,
+                dynamic_ncols=True
             )
-        else:
-            progress = train_loader
 
-        for step, train_data in enumerate(progress):
+        for step, batch in enumerate(loader):
             scheduler_step = epoch + step / len(train_loader)
             lr = adjust_learning_rate(cfg, optimizer, scheduler_step)
 
+            # unpack batch (with or without preloaded encoder states)
             if cfg.dataset.preload_path:
-                X_side, key_states, value_states, y = train_data
-                key_states, value_states = (
-                    key_states.to(device),
-                    value_states.to(device),
-                )
-                key_states = key_states.transpose(0, 1)
-                value_states = value_states.transpose(0, 1)
+                X_side, key_states, value_states, y = batch
+                key_states = key_states.to(device).transpose(0,1)
+                value_states = value_states.to(device).transpose(0,1)
             else:
-                X_lpm, X_side, y = train_data
+                X_lpm, X_side, y = batch
                 X_lpm = X_lpm.to(device)
                 with torch.no_grad():
                     _, key_states, value_states = frozen_encoder(
                         X_lpm, interpolate_pos_encoding=True
                     )
+                key_states = key_states.to(device).transpose(0,1)
+                value_states = value_states.to(device).transpose(0,1)
 
-            X_side, y = X_side.to(device), y.to(device)
-            y = select_target_type(y, cfg.train.criterion)
+            X_side = X_side.to(device)
+            y = select_target_type(y.to(device), cfg.train.criterion)
 
-            # forward
+            # forward + loss
             y_pred = model(X_side, key_states, value_states)
             loss = loss_function(y_pred, y)
 
@@ -91,61 +87,55 @@ def train(cfg, frozen_encoder, model, train_dataset, val_dataset, estimator):
             avg_loss = epoch_loss / (step + 1)
             estimator.update(y_pred, y)
 
-            # Update progress bar with detailed information
             if cfg.base.progress:
-                progress.set_postfix({"Loss": f"{avg_loss:.6f}", "LR": f"{lr:.4f}"})
+                loader.set_postfix({"Loss": f"{avg_loss:.6f}", "LR": f"{lr:.4f}"})
 
-        # Close progress bar at end of epoch
         if cfg.base.progress:
-            progress.close()
+            loader.close()
 
-        train_scores = estimator.get_scores(4)
-        scores_txt = ", ".join(
-            ["{}: {}".format(metric, score) for metric, score in train_scores.items()]
-        )
-        print("Training metrics:", scores_txt)
+        # compute & log training metrics
+        train_scores = estimator.get_scores(digits=4)
+        train_acc = train_scores.get('acc', None)
+        print("Training metrics:", ", ".join(f"{k}: {v}" for k,v in train_scores.items()))
 
-        train_loss = avg_loss
-        train_acc = train_scores["acc"]
-
+        # save periodic checkpoint
         if epoch % cfg.train.save_interval == 0:
-            save_name = "checkpoint.pt"
-            save_checkpoint(cfg, model, epoch, optimizer, save_name)
+            save_checkpoint(cfg, model, epoch, optimizer, "checkpoint.pt")
 
-        # validation performance
+        # validation
         if epoch % cfg.train.eval_interval == 0:
-            val_loss = eval(cfg, frozen_encoder, model, val_loader, estimator, loss_function, device)
-            
-            val_scores = estimator.get_scores(6)
-            validation_acc = val_scores["acc"]
-            scores_txt = [
-                "{}: {}".format(metric, score) for metric, score in val_scores.items()
-            ]
-            print_msg("Validation metrics:", scores_txt)
+            val_loss = eval(
+                cfg, frozen_encoder, model, val_loader,
+                estimator, loss_function, device
+            )
+            val_scores = estimator.get_scores(digits=6)
+            print_msg("Validation metrics:", [f"{k}: {v}" for k,v in val_scores.items()])
 
-            # save model
+            # save best model
             indicator = val_scores[cfg.train.indicator]
             if indicator > max_indicator:
-                save_name = "best_validation_weights.pt"
-                save_weights(cfg, model, save_name)
+                save_weights(cfg, model, "best_validation_weights.pt")
                 max_indicator = indicator
-        history_train_loss.append(train_loss)
+
+        # record history
+        history_train_loss.append(avg_loss)
         history_train_accuracy.append(train_acc)
         history_validation_loss.append(val_loss)
-        history_validation_accuracy.append(validation_acc)
-    
-    diagrams_saave_path = os.path.join(cfg.dataset.save_path, "performance_plots.png")
+        history_validation_accuracy.append(val_scores.get('acc', None))
 
+    # plot and save performance curves
     plot_training_history(
         history_train_loss,
         history_train_accuracy,
         history_validation_loss,
         history_validation_accuracy,
-        diagrams_saave_path
-    ) 
-    
-    save_name = "final_weights.pt"
-    save_weights(cfg, model, save_name)
+        os.path.join(cfg.dataset.save_path, "performance_plots.png")
+    )
+
+    # save final model
+    save_weights(cfg, model, "final_weights.pt")
+    return loss_function
+
 
 
 def eval(cfg, frozen_encoder, model, dataloader, estimator, loss_function, device):
