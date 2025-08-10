@@ -13,6 +13,7 @@ from src.utils.func import print_msg, add_path_suffix, DataLoader
 from train_a import train as train_a
 from train_b import train as train_b
 from train_c import train as train_c
+from train_d import train as train_d
 from src.utils.metrics import Estimator
 from data.builder import generate_dataset
 from src.builder import generate_model, load_weights
@@ -82,9 +83,9 @@ def main(cfg):
             validation_passed = False
     if hasattr(cfg.base, "training_plan"):
         training_plan = cfg.base.training_plan.strip()
-        if  training_plan not in ["A", "B", "C"]:
+        if  training_plan not in ["A", "B", "C", "D"]:
             print(
-                f"ERROR: Invalid 'training_plan': {training_plan.strip()}. Must be two str, just A, B, C."
+                f"ERROR: Invalid 'training_plan': {training_plan.strip()}. Must be two str, just A, B, C. D."
             )
             validation_passed = False
     if not validation_passed:
@@ -154,6 +155,8 @@ def main(cfg):
         train_pipeline = train_b
     elif training_plan == "C":
         train_pipeline = train_c
+    elif training_plan == "D":
+        train_pipeline = train_d
     else:
         raise RuntimeError()
     used_loss_function = train_pipeline(
