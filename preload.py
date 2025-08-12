@@ -8,7 +8,8 @@ from torch.utils.data import DataLoader
 from safetensors.torch import save_file
 from data.dataset import FineImageFolder
 
-from src.utils.func import *
+from src.utils.func import print_msg
+from tqdm import tqdm
 from src.builder import build_frozen_encoder
 
 
