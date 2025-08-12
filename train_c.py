@@ -95,7 +95,7 @@ def train(cfg, frozen_encoder, model, train_dataset, val_dataset, estimator):
             estimator.update(y_pred, y)
 
             if cfg.base.progress:
-                loader.set_postfix({"Loss": f"{avg_loss:.6f}", "LR": f"{lr:.4f}"})
+                loader.set_postfix({"Loss": f"{avg_loss:.6f}", "LR": f"{lr:.6f}"})
 
         if cfg.base.progress:
             loader.close()
@@ -320,7 +320,7 @@ def adjust_learning_rate(cfg, optimizer, epoch):
     for param_group in optimizer.param_groups:
         param_group["lr"] = lr
     return lr
-    
+
 def adjust_learning_rate_old(cfg, optimizer, epoch):
     """Decays the learning rate with half-cycle cosine after warmup"""
     if epoch < cfg.train.warmup_epochs:
