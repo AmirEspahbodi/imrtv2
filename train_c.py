@@ -30,6 +30,13 @@ def train(cfg, frozen_encoder, model, train_dataset, val_dataset, estimator):
     history_train_accuracy = []
     history_validation_loss = []
     history_validation_accuracy = []
+    
+    # Early stopping variables
+    patience_counter = 0
+    best_epoch = 0
+    early_stopping_patience = getattr(cfg.train, 'early_stopping_patience', None)
+    min_delta = getattr(cfg.train, 'early_stopping_min_delta', 0.0)
+    best_weights_saved = False  # Track if best weights were ever saved
 
     for epoch in range(start_epoch, cfg.train.epochs):
         # update dynamic loss weights
@@ -114,11 +121,30 @@ def train(cfg, frozen_encoder, model, train_dataset, val_dataset, estimator):
                 "Validation metrics:", [f"{k}: {v}" for k, v in val_scores.items()]
             )
 
-            # save best model
+            # save best model and early stopping logic
             indicator = val_scores[cfg.train.indicator]
-            if indicator > max_indicator:
+            if indicator > max_indicator + min_delta:
                 save_weights(cfg, model, "best_validation_weights.pt")
                 max_indicator = indicator
+                patience_counter = 0  # Reset patience counter
+                best_epoch = epoch
+                best_weights_saved = True  # Mark that we saved best weights
+                print_msg(f"New best {cfg.train.indicator}: {indicator:.6f} at epoch {epoch + 1}")
+            else:
+                patience_counter += 1
+                print_msg(f"No improvement for {patience_counter} validation intervals")
+
+            # Check early stopping
+            if early_stopping_patience and patience_counter >= early_stopping_patience:
+                print_msg(f"Early stopping triggered at epoch {epoch + 1}")
+                print_msg(f"Best {cfg.train.indicator}: {max_indicator:.6f} at epoch {best_epoch + 1}")
+                print_msg("Restoring best weights and stopping training")
+                
+                # Load best weights if they exist
+                best_weights_path = os.path.join(cfg.dataset.save_path, "best_validation_weights.pt")
+                if os.path.exists(best_weights_path):
+                    model.load_state_dict(torch.load(best_weights_path, map_location=device))
+                break
 
         # record history
         history_train_loss.append(avg_loss)
@@ -134,6 +160,11 @@ def train(cfg, frozen_encoder, model, train_dataset, val_dataset, estimator):
         history_validation_accuracy,
         os.path.join(cfg.dataset.save_path, "performance_plots.png"),
     )
+
+    # Ensure best_validation_weights.pt is always saved
+    if not best_weights_saved:
+        print_msg("No validation improvement detected, saving current weights as best_validation_weights.pt")
+        save_weights(cfg, model, "best_validation_weights.pt")
 
     # save final model
     save_weights(cfg, model, "final_weights.pt")
