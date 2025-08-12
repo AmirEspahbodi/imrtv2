@@ -138,14 +138,20 @@ class CoAtNetSideViTClassifier_1(nn.Module):
         side_input_size = self.cfg.network.side_input_size
         vit_out1 = self.sidevit1(
             F.interpolate(
-                sv1_in, size=(side_input_size, side_input_size), mode="bilinear", align_corners=False
+                sv1_in,
+                size=(side_input_size, side_input_size),
+                mode="bilinear",
+                align_corners=False,
             ),
             K_value,
             Q_value,
         )
         vit_out2 = self.sidevit2(
             F.interpolate(
-                sv2_in, size=(side_input_size, side_input_size), mode="bilinear", align_corners=False
+                sv2_in,
+                size=(side_input_size, side_input_size),
+                mode="bilinear",
+                align_corners=False,
             ),
             K_value,
             Q_value,
@@ -318,7 +324,10 @@ class CoAtNetSideViTClassifier_2(nn.Module):
         side_input_size = self.cfg.network.side_input_size
         sv1_in = self.fpn_fusion(f_shallow=f2, f_deep=f3)
         sv1_in = F.interpolate(
-            sv1_in, size=(side_input_size, side_input_size), mode="bilinear", align_corners=False
+            sv1_in,
+            size=(side_input_size, side_input_size),
+            mode="bilinear",
+            align_corners=False,
         )
         sv1_in = self.shared_se_block(sv1_in)  # Using shared module
         sv1_in = self.shared_drop_block(sv1_in)  # Using shared module
@@ -326,7 +335,10 @@ class CoAtNetSideViTClassifier_2(nn.Module):
         # --- Side-ViT 2 Input ---
         sv2_in = self.proj_sv2(f4)  # Using factorized projection
         sv2_in = F.interpolate(
-            sv2_in, size=(side_input_size, side_input_size), mode="bilinear", align_corners=False
+            sv2_in,
+            size=(side_input_size, side_input_size),
+            mode="bilinear",
+            align_corners=False,
         )
         sv2_in = self.shared_se_block(sv2_in)  # Using shared module
         sv2_in = self.shared_drop_block(sv2_in)  # Using shared module
