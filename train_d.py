@@ -275,22 +275,16 @@ def initialize_optimizer(cfg, model):
 
 
 def adjust_learning_rate(cfg, optimizer, epoch):
-    """Decays the learning rate with half-cycle cosine after warmup"""
+    """Fixed warmup schedule"""
     if epoch < cfg.train.warmup_epochs:
-        lr = cfg.dataset.learning_rate * epoch / cfg.train.warmup_epochs
+        # Fix: Start from small non-zero value
+        lr = cfg.dataset.learning_rate * (epoch + 1) / cfg.train.warmup_epochs
     else:
-        lr = (
-            cfg.dataset.learning_rate
-            * 0.5
-            * (
-                1.0
-                + math.cos(
-                    math.pi
-                    * (epoch - cfg.train.warmup_epochs)
-                    / (cfg.train.epochs - cfg.train.warmup_epochs)
-                )
-            )
-        )
+        # Keep existing cosine decay
+        lr = (cfg.dataset.learning_rate * 0.5 * 
+              (1.0 + math.cos(math.pi * (epoch - cfg.train.warmup_epochs) / 
+                             (cfg.train.epochs - cfg.train.warmup_epochs))))
+    
     for param_group in optimizer.param_groups:
         param_group["lr"] = lr
     return lr
