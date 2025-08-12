@@ -252,13 +252,13 @@ def initialize_loss(cfg, train_dataset):
 
     weight = None
     loss_weight_scheduler = None
-    loss_weight = cfg.train.loss_weight
+    loss_weight = cfg.train.tp_d_loss_weight
     if criterion == "cross_entropy":
         if loss_weight == "balance":
             loss_weight_scheduler = LossWeightsScheduler(train_dataset, 1)
         elif loss_weight == "dynamic":
             loss_weight_scheduler = LossWeightsScheduler(
-                train_dataset, cfg.train.loss_weight_decay_rate
+                train_dataset, cfg.train.tp_d_loss_weight_decay_rate
             )
         elif isinstance(loss_weight, list):
             assert len(loss_weight) == len(train_dataset.classes)
