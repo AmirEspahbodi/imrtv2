@@ -30,12 +30,12 @@ def train(cfg, frozen_encoder, model, train_dataset, val_dataset, estimator):
     history_train_accuracy = []
     history_validation_loss = []
     history_validation_accuracy = []
-    
+
     # Early stopping variables
     patience_counter = 0
     best_epoch = 0
-    early_stopping_patience = getattr(cfg.train, 'tp_c_early_stopping_patience', None)
-    min_delta = getattr(cfg.train, 'early_stopping_min_delta', 0.0)
+    early_stopping_patience = getattr(cfg.train, "tp_c_early_stopping_patience", None)
+    min_delta = getattr(cfg.train, "early_stopping_min_delta", 0.0)
     best_weights_saved = False  # Track if best weights were ever saved
 
     for epoch in range(start_epoch, cfg.train.tp_c_epochs):
@@ -129,7 +129,9 @@ def train(cfg, frozen_encoder, model, train_dataset, val_dataset, estimator):
                 patience_counter = 0  # Reset patience counter
                 best_epoch = epoch
                 best_weights_saved = True  # Mark that we saved best weights
-                print_msg(f"New best {cfg.train.indicator}: {indicator:.6f} at epoch {epoch + 1}")
+                print_msg(
+                    f"New best {cfg.train.indicator}: {indicator:.6f} at epoch {epoch + 1}"
+                )
             else:
                 patience_counter += 1
                 print_msg(f"No improvement for {patience_counter} validation intervals")
@@ -137,13 +139,19 @@ def train(cfg, frozen_encoder, model, train_dataset, val_dataset, estimator):
             # Check early stopping
             if early_stopping_patience and patience_counter >= early_stopping_patience:
                 print_msg(f"Early stopping triggered at epoch {epoch + 1}")
-                print_msg(f"Best {cfg.train.indicator}: {max_indicator:.6f} at epoch {best_epoch + 1}")
+                print_msg(
+                    f"Best {cfg.train.indicator}: {max_indicator:.6f} at epoch {best_epoch + 1}"
+                )
                 print_msg("Restoring best weights and stopping training")
-                
+
                 # Load best weights if they exist
-                best_weights_path = os.path.join(cfg.dataset.save_path, "best_validation_weights.pt")
+                best_weights_path = os.path.join(
+                    cfg.dataset.save_path, "best_validation_weights.pt"
+                )
                 if os.path.exists(best_weights_path):
-                    model.load_state_dict(torch.load(best_weights_path, map_location=device))
+                    model.load_state_dict(
+                        torch.load(best_weights_path, map_location=device)
+                    )
                 break
 
         # record history
@@ -163,7 +171,9 @@ def train(cfg, frozen_encoder, model, train_dataset, val_dataset, estimator):
 
     # Ensure best_validation_weights.pt is always saved
     if not best_weights_saved:
-        print_msg("No validation improvement detected, saving current weights as best_validation_weights.pt")
+        print_msg(
+            "No validation improvement detected, saving current weights as best_validation_weights.pt"
+        )
         save_weights(cfg, model, "best_validation_weights.pt")
 
     # save final model
@@ -306,6 +316,7 @@ def initialize_optimizer(cfg, model):
 
     return optimizer
 
+
 def adjust_learning_rate(cfg, optimizer, epoch):
     """Fixed warmup schedule"""
     if epoch < cfg.train.tp_c_warmup_epochs:
@@ -313,13 +324,23 @@ def adjust_learning_rate(cfg, optimizer, epoch):
         lr = cfg.dataset.learning_rate * (epoch + 1) / cfg.train.tp_c_warmup_epochs
     else:
         # Keep existing cosine decay
-        lr = (cfg.dataset.learning_rate * 0.5 * 
-              (1.0 + math.cos(math.pi * (epoch - cfg.train.tp_c_warmup_epochs) / 
-                             (cfg.train.tp_c_epochs - cfg.train.tp_c_warmup_epochs))))
-    
+        lr = (
+            cfg.dataset.learning_rate
+            * 0.5
+            * (
+                1.0
+                + math.cos(
+                    math.pi
+                    * (epoch - cfg.train.tp_c_warmup_epochs)
+                    / (cfg.train.tp_c_epochs - cfg.train.tp_c_warmup_epochs)
+                )
+            )
+        )
+
     for param_group in optimizer.param_groups:
         param_group["lr"] = lr
     return lr
+
 
 def adjust_learning_rate_old(cfg, optimizer, epoch):
     """Decays the learning rate with half-cycle cosine after warmup"""
