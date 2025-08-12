@@ -1,5 +1,8 @@
 train:
   epochs: 5
+  early_stopping_patience: 5
+  tp_c_epochs: 15
+  tp_c_early_stopping_patience: 5
   batch_size: 8
   num_workers: 2
   criterion: cross_entropy # available criterions are list in 'criterion_args' below
@@ -14,7 +17,6 @@ train:
   pin_memory: true # enables fast data transfer to CUDA-enabled GPUs
 
   # for plan B
-  early_stopping_patience: 15
   label_smoothing: 0.1
   swa_start_epoch: 10
 

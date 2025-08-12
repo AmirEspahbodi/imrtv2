@@ -34,11 +34,11 @@ def train(cfg, frozen_encoder, model, train_dataset, val_dataset, estimator):
     # Early stopping variables
     patience_counter = 0
     best_epoch = 0
-    early_stopping_patience = getattr(cfg.train, 'early_stopping_patience', None)
+    early_stopping_patience = getattr(cfg.train, 'tp_c_early_stopping_patience', None)
     min_delta = getattr(cfg.train, 'early_stopping_min_delta', 0.0)
     best_weights_saved = False  # Track if best weights were ever saved
 
-    for epoch in range(start_epoch, cfg.train.epochs):
+    for epoch in range(start_epoch, cfg.train.tp_c_epochs):
         # update dynamic loss weights
         if loss_weight_scheduler:
             w = loss_weight_scheduler.step()
@@ -51,7 +51,7 @@ def train(cfg, frozen_encoder, model, train_dataset, val_dataset, estimator):
         if cfg.base.progress:
             loader = tqdm(
                 train_loader,
-                desc=f"Epoch {epoch + 1}/{cfg.train.epochs}",
+                desc=f"Epoch {epoch + 1}/{cfg.train.tp_c_epochs}",
                 total=len(train_loader),
                 unit="batch",
                 leave=True,
@@ -320,7 +320,7 @@ def adjust_learning_rate(cfg, optimizer, epoch):
                 + math.cos(
                     math.pi
                     * (epoch - cfg.train.warmup_epochs)
-                    / (cfg.train.epochs - cfg.train.warmup_epochs)
+                    / (cfg.train.tp_c_epochs - cfg.train.warmup_epochs)
                 )
             )
         )
