@@ -1,6 +1,6 @@
 train:
   tp_d_epochs: 8
-  tp_d_early_stopping_patience: 3
+  tp_d_early_stopping_patience: 4
   tp_d_warmup_epochs: 2
   tp_c_epochs: 15
   tp_c_early_stopping_patience: 5
