@@ -1,5 +1,5 @@
 train:
-  epochs: 8 
+  epochs: 5
   batch_size: 8
   num_workers: 2
   criterion: cross_entropy # available criterions are list in 'criterion_args' below

@@ -196,8 +196,8 @@ pyrightconfig.json
 
 labeled-chest-xray-images/
 outputs/
-preload_chest_xray/
+preload_chest_xray*/
 result/
-splited_chest_xray/
+splited_chest_xray*/
 *.xlsx
 *.xlsx#
