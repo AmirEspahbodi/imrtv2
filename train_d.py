@@ -34,11 +34,11 @@ def train(cfg, frozen_encoder, model, train_dataset, val_dataset, estimator):
     # Early stopping variables
     patience_counter = 0
     best_epoch = 0
-    early_stopping_patience = getattr(cfg.train, 'tp_c_early_stopping_patience', None)
+    early_stopping_patience = getattr(cfg.train, 'tp_d_early_stopping_patience', None)
     min_delta = getattr(cfg.train, 'early_stopping_min_delta', 0.0)
     best_weights_saved = False  # Track if best weights were ever saved
 
-    for epoch in range(start_epoch, cfg.train.tp_c_epochs):
+    for epoch in range(start_epoch, cfg.train.tp_d_epochs):
         # update dynamic loss weights
         if loss_weight_scheduler:
             w = loss_weight_scheduler.step()
@@ -51,7 +51,7 @@ def train(cfg, frozen_encoder, model, train_dataset, val_dataset, estimator):
         if cfg.base.progress:
             loader = tqdm(
                 train_loader,
-                desc=f"Epoch {epoch + 1}/{cfg.train.tp_c_epochs}",
+                desc=f"Epoch {epoch + 1}/{cfg.train.tp_d_epochs}",
                 total=len(train_loader),
                 unit="batch",
                 leave=True,
@@ -95,7 +95,7 @@ def train(cfg, frozen_encoder, model, train_dataset, val_dataset, estimator):
             estimator.update(y_pred, y)
 
             if cfg.base.progress:
-                loader.set_postfix({"Loss": f"{avg_loss:.6f}", "LR": f"{lr:.6f}"})
+                loader.set_postfix({"Loss": f"{avg_loss:.6f}", "LR": f"{lr:.7f}"})
 
         if cfg.base.progress:
             loader.close()
@@ -306,14 +306,14 @@ def initialize_optimizer(cfg, model):
 
 def adjust_learning_rate(cfg, optimizer, epoch):
     """Fixed warmup schedule"""
-    if epoch < cfg.train.warmup_epochs:
+    if epoch < cfg.train.tp_d_warmup_epochs:
         # Fix: Start from small non-zero value
-        lr = cfg.dataset.learning_rate * (epoch + 1) / cfg.train.warmup_epochs
+        lr = cfg.dataset.learning_rate * (epoch + 1) / cfg.train.tp_d_warmup_epochs
     else:
         # Keep existing cosine decay
         lr = (cfg.dataset.learning_rate * 0.5 * 
-              (1.0 + math.cos(math.pi * (epoch - cfg.train.warmup_epochs) / 
-                             (cfg.train.epochs - cfg.train.warmup_epochs))))
+              (1.0 + math.cos(math.pi * (epoch - cfg.train.tp_d_warmup_epochs) / 
+                             (cfg.train.tp_d_epochs - cfg.train.tp_d_warmup_epochs))))
     
     for param_group in optimizer.param_groups:
         param_group["lr"] = lr
@@ -321,8 +321,8 @@ def adjust_learning_rate(cfg, optimizer, epoch):
 
 def adjust_learning_rate_old(cfg, optimizer, epoch):
     """Decays the learning rate with half-cycle cosine after warmup"""
-    if epoch < cfg.train.warmup_epochs:
-        lr = cfg.dataset.learning_rate * epoch / cfg.train.warmup_epochs
+    if epoch < cfg.train.tp_d_warmup_epochs:
+        lr = cfg.dataset.learning_rate * epoch / cfg.train.tp_d_warmup_epochs
     else:
         lr = (
             cfg.dataset.learning_rate
@@ -331,8 +331,8 @@ def adjust_learning_rate_old(cfg, optimizer, epoch):
                 1.0
                 + math.cos(
                     math.pi
-                    * (epoch - cfg.train.warmup_epochs)
-                    / (cfg.train.tp_c_epochs - cfg.train.warmup_epochs)
+                    * (epoch - cfg.train.tp_d_warmup_epochs)
+                    / (cfg.train.tp_d_epochs - cfg.train.tp_d_warmup_epochs)
                 )
             )
         )
