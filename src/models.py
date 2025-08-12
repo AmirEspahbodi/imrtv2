@@ -123,10 +123,7 @@ class CoAtNetSideViTClassifier_1(nn.Module):
 
     def forward(self, x: torch.Tensor, K_value=None, Q_value=None) -> torch.Tensor:
         # Backbone Feature Extraction
-        x_backbone = F.interpolate(
-            x, size=(224, 224), mode="bilinear", align_corners=False
-        )
-        features = self.backbone(x_backbone)
+        features = self.backbone(x)
         f2, f3, f4 = features[2], features[3], features[4]
 
         # Prepare inputs for Side-ViTs
@@ -314,10 +311,7 @@ class CoAtNetSideViTClassifier_2(nn.Module):
         )
 
     def forward(self, x: torch.Tensor, K_value=None, Q_value=None) -> torch.Tensor:
-        x_backbone = F.interpolate(
-            x, size=(224, 224), mode="bilinear", align_corners=False
-        )
-        features = self.backbone(x_backbone)
+        features = self.backbone(x)
         f2, f3, f4 = features[2], features[3], features[4]
 
         # --- Side-ViT 1 Input ---

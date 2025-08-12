@@ -4,7 +4,7 @@ name: customized
 # preload_path: /kaggle/working/covid_preload_data
 # save_path: /kaggle/working/covid_runs
 
-data_path: /content/dataset/splited_chest_xray # path to the dataset
+data_path: /content/dataset/splited_chest_xray_2 # path to the dataset
 preload_path: /content/dataset/preload_chest_xray # path to the preloaded data
 save_path: /content/output/result # path to save the experiment results
 input_size: 512 # image resolution for the LPM

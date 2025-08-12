@@ -195,9 +195,9 @@ pyrightconfig.json
 # End of https://www.toptal.com/developers/gitignore/api/python,visualstudiocode
 
 labeled-chest-xray-images/
-outputs/
+outputs*/
 preload_chest_xray*/
-result/
+result*/
 splited_chest_xray*/
 *.xlsx
 *.xlsx#
