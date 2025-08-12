@@ -25,7 +25,7 @@ def train(cfg, frozen_encoder, model, train_dataset, val_dataset, estimator):
         start_epoch = resume(cfg, model, optimizer)
 
     model.train()
-    max_indicator = float('-inf')
+    max_indicator = float("-inf")
     history_train_loss = []
     history_train_accuracy = []
     history_validation_loss = []
@@ -44,11 +44,11 @@ def train(cfg, frozen_encoder, model, train_dataset, val_dataset, estimator):
         if cfg.base.progress:
             loader = tqdm(
                 train_loader,
-                desc=f"Epoch {epoch+1}/{cfg.train.epochs}",
+                desc=f"Epoch {epoch + 1}/{cfg.train.epochs}",
                 total=len(train_loader),
                 unit="batch",
                 leave=True,
-                dynamic_ncols=True
+                dynamic_ncols=True,
             )
 
         for step, batch in enumerate(loader):
@@ -58,8 +58,8 @@ def train(cfg, frozen_encoder, model, train_dataset, val_dataset, estimator):
             # unpack batch (with or without preloaded encoder states)
             if cfg.dataset.preload_path:
                 X_side, key_states, value_states, y = batch
-                key_states = key_states.to(device).transpose(0,1)
-                value_states = value_states.to(device).transpose(0,1)
+                key_states = key_states.to(device).transpose(0, 1)
+                value_states = value_states.to(device).transpose(0, 1)
             else:
                 X_lpm, X_side, y = batch
                 X_lpm = X_lpm.to(device)
@@ -67,8 +67,8 @@ def train(cfg, frozen_encoder, model, train_dataset, val_dataset, estimator):
                     _, key_states, value_states = frozen_encoder(
                         X_lpm, interpolate_pos_encoding=True
                     )
-                key_states = key_states.to(device).transpose(0,1)
-                value_states = value_states.to(device).transpose(0,1)
+                key_states = key_states.to(device).transpose(0, 1)
+                value_states = value_states.to(device).transpose(0, 1)
 
             X_side = X_side.to(device)
             y = select_target_type(y.to(device), cfg.train.criterion)
@@ -95,8 +95,10 @@ def train(cfg, frozen_encoder, model, train_dataset, val_dataset, estimator):
 
         # compute & log training metrics
         train_scores = estimator.get_scores(digits=4)
-        train_acc = train_scores.get('acc', None)
-        print("Training metrics:", ", ".join(f"{k}: {v}" for k,v in train_scores.items()))
+        train_acc = train_scores.get("acc", None)
+        print(
+            "Training metrics:", ", ".join(f"{k}: {v}" for k, v in train_scores.items())
+        )
 
         # save periodic checkpoint
         if epoch % cfg.train.save_interval == 0:
@@ -105,11 +107,12 @@ def train(cfg, frozen_encoder, model, train_dataset, val_dataset, estimator):
         # validation
         if epoch % cfg.train.eval_interval == 0:
             val_loss = eval(
-                cfg, frozen_encoder, model, val_loader,
-                estimator, loss_function, device
+                cfg, frozen_encoder, model, val_loader, estimator, loss_function, device
             )
             val_scores = estimator.get_scores(digits=6)
-            print_msg("Validation metrics:", [f"{k}: {v}" for k,v in val_scores.items()])
+            print_msg(
+                "Validation metrics:", [f"{k}: {v}" for k, v in val_scores.items()]
+            )
 
             # save best model
             indicator = val_scores[cfg.train.indicator]
@@ -121,7 +124,7 @@ def train(cfg, frozen_encoder, model, train_dataset, val_dataset, estimator):
         history_train_loss.append(avg_loss)
         history_train_accuracy.append(train_acc)
         history_validation_loss.append(val_loss)
-        history_validation_accuracy.append(val_scores.get('acc', None))
+        history_validation_accuracy.append(val_scores.get("acc", None))
 
     # plot and save performance curves
     plot_training_history(
@@ -129,7 +132,7 @@ def train(cfg, frozen_encoder, model, train_dataset, val_dataset, estimator):
         history_train_accuracy,
         history_validation_loss,
         history_validation_accuracy,
-        os.path.join(cfg.dataset.save_path, "performance_plots.png")
+        os.path.join(cfg.dataset.save_path, "performance_plots.png"),
     )
 
     # save final model
@@ -137,11 +140,10 @@ def train(cfg, frozen_encoder, model, train_dataset, val_dataset, estimator):
     return loss_function
 
 
-
 def eval(cfg, frozen_encoder, model, dataloader, estimator, loss_function, device):
     model.eval()
     torch.set_grad_enabled(False)
-    
+
     total_loss = 0.0
     total_batches = 0
 
@@ -174,9 +176,8 @@ def eval(cfg, frozen_encoder, model, dataloader, estimator, loss_function, devic
 
     model.train()
     torch.set_grad_enabled(True)
-    
-    return avg_loss
 
+    return avg_loss
 
 
 # define data loader
@@ -337,7 +338,7 @@ def plot_training_history(
     history_train_accuracy: List[float],
     history_validation_loss: List[float],
     history_validation_accuracy: List[float],
-    save_path: str
+    save_path: str,
 ) -> None:
     # Determine number of epochs
     epochs = list(range(1, len(history_train_loss) + 1))
@@ -346,20 +347,22 @@ def plot_training_history(
     fig, (ax_loss, ax_acc) = plt.subplots(1, 2, figsize=(12, 5))
 
     # Plot loss
-    ax_loss.plot(epochs, history_train_loss, label='Training Loss', marker='o')
-    ax_loss.plot(epochs, history_validation_loss, label='Validation Loss', marker='o')
-    ax_loss.set_title('Loss over Epochs')
-    ax_loss.set_xlabel('Epoch')
-    ax_loss.set_ylabel('Loss')
+    ax_loss.plot(epochs, history_train_loss, label="Training Loss", marker="o")
+    ax_loss.plot(epochs, history_validation_loss, label="Validation Loss", marker="o")
+    ax_loss.set_title("Loss over Epochs")
+    ax_loss.set_xlabel("Epoch")
+    ax_loss.set_ylabel("Loss")
     ax_loss.legend()
     ax_loss.grid(True)
 
     # Plot accuracy
-    ax_acc.plot(epochs, history_train_accuracy, label='Training Accuracy', marker='o')
-    ax_acc.plot(epochs, history_validation_accuracy, label='Validation Accuracy', marker='o')
-    ax_acc.set_title('Accuracy over Epochs')
-    ax_acc.set_xlabel('Epoch')
-    ax_acc.set_ylabel('Accuracy')
+    ax_acc.plot(epochs, history_train_accuracy, label="Training Accuracy", marker="o")
+    ax_acc.plot(
+        epochs, history_validation_accuracy, label="Validation Accuracy", marker="o"
+    )
+    ax_acc.set_title("Accuracy over Epochs")
+    ax_acc.set_xlabel("Epoch")
+    ax_acc.set_ylabel("Accuracy")
     ax_acc.legend()
     ax_acc.grid(True)
 

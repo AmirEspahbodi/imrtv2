@@ -128,7 +128,13 @@ def train(cfg, frozen_encoder, model, train_dataset, val_dataset, estimator):
 
         eval_model = swa_model if epoch >= swa_start_epoch else model
         val_loss, val_accuracy = evaluate_model(
-            cfg, frozen_encoder, eval_model, val_loader, loss_function, device, just_loss_acc=True
+            cfg,
+            frozen_encoder,
+            eval_model,
+            val_loader,
+            loss_function,
+            device,
+            just_loss_acc=True,
         )
         history["val_loss"].append(val_loss)
         history["val_acc"].append(val_accuracy)

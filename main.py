@@ -83,7 +83,7 @@ def main(cfg):
             validation_passed = False
     if hasattr(cfg.base, "training_plan"):
         training_plan = cfg.base.training_plan.strip()
-        if  training_plan not in ["A", "B", "C", "D"]:
+        if training_plan not in ["A", "B", "C", "D"]:
             print(
                 f"ERROR: Invalid 'training_plan': {training_plan.strip()}. Must be two str, just A, B, C. D."
             )
@@ -94,8 +94,10 @@ def main(cfg):
     # --- End of new validation block ---
 
     # change save path epecially for the model with current configuration, create unqie path for each model+configuration
-    cfg.dataset.save_path = f"{cfg.dataset.save_path}\\{cfg.network.model}_{cfg.network.model_id}"
-    
+    cfg.dataset.save_path = (
+        f"{cfg.dataset.save_path}\\{cfg.network.model}_{cfg.network.model_id}"
+    )
+
     # create folder
     save_path = cfg.dataset.save_path
     if os.path.exists(save_path):
@@ -168,7 +170,6 @@ def main(cfg):
         estimator=estimator,
     )
 
-
     print("This is the performance of the best validation model:")
     checkpoint = os.path.join(cfg.dataset.save_path, "best_validation_weights.pt")
     load_weights(classifier_with_side_vits, checkpoint)
@@ -178,7 +179,7 @@ def main(cfg):
         classifier_with_side_vits,
         test_dataset,
         "best_validation_weights",
-        used_loss_function
+        used_loss_function,
     )
 
     print("This is the performance of the final model:")
@@ -190,8 +191,9 @@ def main(cfg):
         classifier_with_side_vits,
         test_dataset,
         "final_weights",
-        used_loss_function
+        used_loss_function,
     )
+
 
 def set_seed(seed, deterministic=False):
     random.seed(seed)
@@ -210,38 +212,53 @@ def save_metics(cfg, frozen_encoder, model, dataset, model_name, used_loss_funct
         pin_memory=cfg.train.pin_memory,
     )
 
-    acc, f1, auc, precision, recall, confusion_matrix = evaluate_model(cfg, frozen_encoder, model, dataloader, used_loss_function, cfg.base.device)
-    confusion_matrix_path = os.path.join(cfg.dataset.save_path, f"{model_name}_confusion_matrix.png")
+    acc, f1, auc, precision, recall, confusion_matrix = evaluate_model(
+        cfg, frozen_encoder, model, dataloader, used_loss_function, cfg.base.device
+    )
+    confusion_matrix_path = os.path.join(
+        cfg.dataset.save_path, f"{model_name}_confusion_matrix.png"
+    )
     save_confusion_matrix(confusion_matrix, confusion_matrix_path)
-    
-    finall_resul_path = os.path.join(cfg.dataset.save_path, f"{model_name}_results.json")
-    
-    with open(finall_resul_path, 'w') as fp:
+
+    finall_resul_path = os.path.join(
+        cfg.dataset.save_path, f"{model_name}_results.json"
+    )
+
+    with open(finall_resul_path, "w") as fp:
         json.dump(
             {
-                "acc":acc,
-                "f1":f1,
-                "auc":auc,
-                "precision":precision,
-                "recall":recall
+                "acc": acc,
+                "f1": f1,
+                "auc": auc,
+                "precision": precision,
+                "recall": recall,
             },
-            fp, 
-            indent=4
+            fp,
+            indent=4,
         )
+
 
 def save_confusion_matrix(confusion_matrix: np.ndarray, save_path: str):
     save_dir = os.path.dirname(save_path)
     if save_dir and not os.path.exists(save_dir):
         os.makedirs(save_dir, exist_ok=True)
-        
+
     n = confusion_matrix.shape[0]
     fig, ax = plt.subplots(figsize=(8, 6))
-    cax = ax.matshow(confusion_matrix, cmap='Blues')
+    cax = ax.matshow(confusion_matrix, cmap="Blues")
     fig.colorbar(cax)
     for (i, j), val in np.ndenumerate(confusion_matrix):
-        ax.text(j, i, f'{val}', ha='center', va='center', fontsize=12, color='white' if val > confusion_matrix.max()/2 else 'black')
-    ax.set_xlabel('Predicted Label')
-    ax.set_ylabel('True Label')
+        ax.text(
+            j,
+            i,
+            f"{val}",
+            ha="center",
+            va="center",
+            fontsize=12,
+            color="white" if val > confusion_matrix.max() / 2 else "black",
+        )
+    ax.set_xlabel("Predicted Label")
+    ax.set_ylabel("True Label")
     ax.set_xticks(np.arange(n))
     ax.set_yticks(np.arange(n))
     plt.setp(ax.get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
@@ -279,7 +296,6 @@ if __name__ == "__main__":
         help="Two numbers for ViT2 feature stride, each between 1 and 4 (e.g., 2 3).",
     )
 
-
     args, unknown_args = parser.parse_known_args()
 
     hydra_overrides = []
@@ -298,7 +314,7 @@ if __name__ == "__main__":
     if args.tp is not None:
         tp_str = args.tp
         hydra_overrides.append(f"base.training_plan={tp_str}")
-    
+
     model_id = f"btl{''.join(map(str, args.btl))}_v1fs{''.join(map(str, args.v1fs))}_v2fs{''.join(map(str, args.v2fs))}_tp{tp_str}"
     hydra_overrides.append(f"+network.model_id={model_id}")
 

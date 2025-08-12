@@ -82,16 +82,13 @@ def data_transforms(cfg):
     #         raise NotImplementedError('Not implemented data augmentation operations: {}'.format(op))
     #     augmentations.append(operations[op])
 
-    augmentations = [
-        transforms.Resize((cfg.network.side_input_size, cfg.network.side_input_size)),
-    ]
     normalization = [
         transforms.ToTensor(),
         transforms.Normalize(cfg.dataset.mean, cfg.dataset.std),
     ]
     lpm_resize = transforms.Resize((cfg.dataset.input_size, cfg.dataset.input_size))
     side_resize = transforms.Resize(
-        (cfg.network.side_input_size, cfg.network.side_input_size)
+        (cfg.network.backbone_input_size, cfg.network.backbone_input_size)
     )
 
     if cfg.dataset.preload_path:

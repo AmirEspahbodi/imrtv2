@@ -12,6 +12,7 @@ from src.utils.func import select_target_type, print_msg
 from src.scheduler import LossWeightsScheduler
 from evaluate_model import evaluate_model
 
+
 # --- 1. Sharpness-Aware Minimization (SAM) Optimizer Implementation ---
 class SAM(torch.optim.Optimizer):
     """
@@ -231,9 +232,15 @@ def train(cfg, frozen_encoder, model, train_dataset, val_dataset, estimator):
 
         # --- Validation Phase ---
         val_loss, val_accuracy = evaluate_model(
-            cfg, frozen_encoder, model, val_loader, loss_function, device, just_loss_acc=True
+            cfg,
+            frozen_encoder,
+            model,
+            val_loader,
+            loss_function,
+            device,
+            just_loss_acc=True,
         )
-        
+
         history["val_loss"].append(val_loss)
         history["val_acc"].append(val_accuracy)
 

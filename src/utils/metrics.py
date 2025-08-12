@@ -3,43 +3,41 @@ import torcheval.metrics as tm
 from src.utils.func import print_msg
 
 metrics_fn = {
-    'acc': tm.MulticlassAccuracy,
-    'f1': tm.MulticlassF1Score,
-    'auc': tm.MulticlassAUROC,
-    'precision': tm.MulticlassPrecision,
-    'recall': tm.MulticlassRecall,
+    "acc": tm.MulticlassAccuracy,
+    "f1": tm.MulticlassF1Score,
+    "auc": tm.MulticlassAUROC,
+    "precision": tm.MulticlassPrecision,
+    "recall": tm.MulticlassRecall,
 }
 available_metrics = metrics_fn.keys()
-logits_required_metrics = ['acc', 'auc']          # ← added 'auc' here
-regression_based_metrics = ['mean_square_error', 'mean_absolute_error', 'smooth_L1']
+logits_required_metrics = ["acc", "auc"]  # ← added 'auc' here
+regression_based_metrics = ["mean_square_error", "mean_absolute_error", "smooth_L1"]
 
-class Estimator():
+
+class Estimator:
     def __init__(self, metrics, num_classes, criterion, thresholds=None):
         self.criterion = criterion
         self.num_classes = num_classes
         self.thresholds = (
-            [-0.5 + i for i in range(num_classes)]
-            if thresholds is None else thresholds
+            [-0.5 + i for i in range(num_classes)] if thresholds is None else thresholds
         )
 
-        if criterion in regression_based_metrics and 'auc' in metrics:
-            metrics.remove('auc')
+        if criterion in regression_based_metrics and "auc" in metrics:
+            metrics.remove("auc")
             print_msg(
-                f'AUC is not supported for regression-based metrics {criterion}.',
-                warning=True
+                f"AUC is not supported for regression-based metrics {criterion}.",
+                warning=True,
             )
 
         self.metrics = metrics
-        self.metrics_fn = {
-            m: metrics_fn[m](num_classes=num_classes) for m in metrics
-        }
+        self.metrics_fn = {m: metrics_fn[m](num_classes=num_classes) for m in metrics}
         self.conf_mat_fn = tm.MulticlassConfusionMatrix(num_classes=num_classes)
 
     def update(self, predictions, targets):
         # predictions: raw model outputs (logits or regression scores)
-        targets = targets.data.cpu().long()      # (B,)
-        logits = predictions.data.cpu()          # (B, num_classes) or (B,)
-        preds = self.to_prediction(logits)       # (B,)
+        targets = targets.data.cpu().long()  # (B,)
+        logits = predictions.data.cpu()  # (B, num_classes) or (B,)
+        preds = self.to_prediction(logits)  # (B,)
 
         # confusion matrix always uses discrete preds
         self.conf_mat_fn.update(preds, targets)
@@ -68,9 +66,7 @@ class Estimator():
     def to_prediction(self, predictions):
         # classification: argmax; regression: threshold bins
         if self.criterion in regression_based_metrics:
-            return torch.tensor([
-                self.classify(p.item()) for p in predictions
-            ]).long()
+            return torch.tensor([self.classify(p.item()) for p in predictions]).long()
         else:
             return torch.argmax(predictions, dim=1).long()
 
@@ -82,9 +78,11 @@ class Estimator():
                 return i
 
 
-class QuadraticWeightedKappa():
-    def __init__(self, num_classes, average='macro'):
-        assert average == 'macro', 'Quadratic weighted kappa only supports macro average.'
+class QuadraticWeightedKappa:
+    def __init__(self, num_classes, average="macro"):
+        assert average == "macro", (
+            "Quadratic weighted kappa only supports macro average."
+        )
         self.num_classes = num_classes
         self.conf_mat = torch.zeros((self.num_classes, self.num_classes), dtype=int)
 
@@ -106,7 +104,9 @@ class QuadraticWeightedKappa():
         weighted_matrix = torch.zeros((cate_num, cate_num))
         for i in range(cate_num):
             for j in range(cate_num):
-                weighted_matrix[i][j] = 1 - float(((i - j)**2) / ((cate_num - 1)**2))
+                weighted_matrix[i][j] = 1 - float(
+                    ((i - j) ** 2) / ((cate_num - 1) ** 2)
+                )
 
         # Expected matrix
         ground_truth_count = torch.sum(conf_mat, axis=1)
@@ -120,5 +120,3 @@ class QuadraticWeightedKappa():
         observed = (conf_mat * weighted_matrix).sum()
         expected = (expected_matrix * weighted_matrix).sum()
         return (observed - expected) / (1 - expected)
-
-
