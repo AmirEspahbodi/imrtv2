@@ -25,18 +25,11 @@ def train(cfg, frozen_encoder, model, train_dataset, val_dataset, estimator):
         start_epoch = resume(cfg, model, optimizer)
 
     model.train()
-    max_indicator = float("-inf")
+    max_indicator = float('-inf')
     history_train_loss = []
     history_train_accuracy = []
     history_validation_loss = []
     history_validation_accuracy = []
-
-    # Early stopping variables
-    patience_counter = 0
-    best_epoch = 0
-    early_stopping_patience = getattr(cfg.train, "tp_d_early_stopping_patience", None)
-    min_delta = getattr(cfg.train, "early_stopping_min_delta", 0.0)
-    best_weights_saved = False  # Track if best weights were ever saved
 
     for epoch in range(start_epoch, cfg.train.tp_d_epochs):
         # update dynamic loss weights
@@ -51,11 +44,11 @@ def train(cfg, frozen_encoder, model, train_dataset, val_dataset, estimator):
         if cfg.base.progress:
             loader = tqdm(
                 train_loader,
-                desc=f"Epoch {epoch + 1}/{cfg.train.tp_d_epochs}",
+                desc=f"Epoch {epoch+1}/{cfg.train.tp_d_epochs}",
                 total=len(train_loader),
                 unit="batch",
                 leave=True,
-                dynamic_ncols=True,
+                dynamic_ncols=True
             )
 
         for step, batch in enumerate(loader):
@@ -65,8 +58,8 @@ def train(cfg, frozen_encoder, model, train_dataset, val_dataset, estimator):
             # unpack batch (with or without preloaded encoder states)
             if cfg.dataset.preload_path:
                 X_side, key_states, value_states, y = batch
-                key_states = key_states.to(device).transpose(0, 1)
-                value_states = value_states.to(device).transpose(0, 1)
+                key_states = key_states.to(device).transpose(0,1)
+                value_states = value_states.to(device).transpose(0,1)
             else:
                 X_lpm, X_side, y = batch
                 X_lpm = X_lpm.to(device)
@@ -74,8 +67,8 @@ def train(cfg, frozen_encoder, model, train_dataset, val_dataset, estimator):
                     _, key_states, value_states = frozen_encoder(
                         X_lpm, interpolate_pos_encoding=True
                     )
-                key_states = key_states.to(device).transpose(0, 1)
-                value_states = value_states.to(device).transpose(0, 1)
+                key_states = key_states.to(device).transpose(0,1)
+                value_states = value_states.to(device).transpose(0,1)
 
             X_side = X_side.to(device)
             y = select_target_type(y.to(device), cfg.train.criterion)
@@ -95,17 +88,15 @@ def train(cfg, frozen_encoder, model, train_dataset, val_dataset, estimator):
             estimator.update(y_pred, y)
 
             if cfg.base.progress:
-                loader.set_postfix({"Loss": f"{avg_loss:.6f}", "LR": f"{lr:.7f}"})
+                loader.set_postfix({"Loss": f"{avg_loss:.6f}", "LR": f"{lr:.4f}"})
 
         if cfg.base.progress:
             loader.close()
 
         # compute & log training metrics
         train_scores = estimator.get_scores(digits=4)
-        train_acc = train_scores.get("acc", None)
-        print(
-            "Training metrics:", ", ".join(f"{k}: {v}" for k, v in train_scores.items())
-        )
+        train_acc = train_scores.get('acc', None)
+        print("Training metrics:", ", ".join(f"{k}: {v}" for k,v in train_scores.items()))
 
         # save periodic checkpoint
         if epoch % cfg.train.save_interval == 0:
@@ -114,51 +105,23 @@ def train(cfg, frozen_encoder, model, train_dataset, val_dataset, estimator):
         # validation
         if epoch % cfg.train.eval_interval == 0:
             val_loss = eval(
-                cfg, frozen_encoder, model, val_loader, estimator, loss_function, device
+                cfg, frozen_encoder, model, val_loader,
+                estimator, loss_function, device
             )
             val_scores = estimator.get_scores(digits=6)
-            print_msg(
-                "Validation metrics:", [f"{k}: {v}" for k, v in val_scores.items()]
-            )
+            print_msg("Validation metrics:", [f"{k}: {v}" for k,v in val_scores.items()])
 
-            # save best model and early stopping logic
+            # save best model
             indicator = val_scores[cfg.train.indicator]
-            if indicator > max_indicator + min_delta:
+            if indicator > max_indicator:
                 save_weights(cfg, model, "best_validation_weights.pt")
                 max_indicator = indicator
-                patience_counter = 0  # Reset patience counter
-                best_epoch = epoch
-                best_weights_saved = True  # Mark that we saved best weights
-                print_msg(
-                    f"New best {cfg.train.indicator}: {indicator:.6f} at epoch {epoch + 1}"
-                )
-            else:
-                patience_counter += 1
-                print_msg(f"No improvement for {patience_counter} validation intervals")
-
-            # Check early stopping
-            if early_stopping_patience and patience_counter >= early_stopping_patience:
-                print_msg(f"Early stopping triggered at epoch {epoch + 1}")
-                print_msg(
-                    f"Best {cfg.train.indicator}: {max_indicator:.6f} at epoch {best_epoch + 1}"
-                )
-                print_msg("Restoring best weights and stopping training")
-
-                # Load best weights if they exist
-                best_weights_path = os.path.join(
-                    cfg.dataset.save_path, "best_validation_weights.pt"
-                )
-                if os.path.exists(best_weights_path):
-                    model.load_state_dict(
-                        torch.load(best_weights_path, map_location=device)
-                    )
-                break
 
         # record history
         history_train_loss.append(avg_loss)
         history_train_accuracy.append(train_acc)
         history_validation_loss.append(val_loss)
-        history_validation_accuracy.append(val_scores.get("acc", None))
+        history_validation_accuracy.append(val_scores.get('acc', None))
 
     # plot and save performance curves
     plot_training_history(
@@ -166,25 +129,19 @@ def train(cfg, frozen_encoder, model, train_dataset, val_dataset, estimator):
         history_train_accuracy,
         history_validation_loss,
         history_validation_accuracy,
-        os.path.join(cfg.dataset.save_path, "performance_plots.png"),
+        os.path.join(cfg.dataset.save_path, "performance_plots.png")
     )
-
-    # Ensure best_validation_weights.pt is always saved
-    if not best_weights_saved:
-        print_msg(
-            "No validation improvement detected, saving current weights as best_validation_weights.pt"
-        )
-        save_weights(cfg, model, "best_validation_weights.pt")
 
     # save final model
     save_weights(cfg, model, "final_weights.pt")
     return loss_function
 
 
+
 def eval(cfg, frozen_encoder, model, dataloader, estimator, loss_function, device):
     model.eval()
     torch.set_grad_enabled(False)
-
+    
     total_loss = 0.0
     total_batches = 0
 
@@ -217,8 +174,9 @@ def eval(cfg, frozen_encoder, model, dataloader, estimator, loss_function, devic
 
     model.train()
     torch.set_grad_enabled(True)
-
+    
     return avg_loss
+
 
 
 # define data loader
@@ -316,31 +274,6 @@ def initialize_optimizer(cfg, model):
 
 
 def adjust_learning_rate(cfg, optimizer, epoch):
-    """Fixed warmup schedule"""
-    if epoch < cfg.train.tp_d_warmup_epochs:
-        # Fix: Start from small non-zero value
-        lr = cfg.dataset.learning_rate * (epoch + 1) / cfg.train.tp_d_warmup_epochs
-    else:
-        # Keep existing cosine decay
-        lr = (
-            cfg.dataset.learning_rate
-            * 0.5
-            * (
-                1.0
-                + math.cos(
-                    math.pi
-                    * (epoch - cfg.train.tp_d_warmup_epochs)
-                    / (cfg.train.tp_d_epochs - cfg.train.tp_d_warmup_epochs)
-                )
-            )
-        )
-
-    for param_group in optimizer.param_groups:
-        param_group["lr"] = lr
-    return lr
-
-
-def adjust_learning_rate_old(cfg, optimizer, epoch):
     """Decays the learning rate with half-cycle cosine after warmup"""
     if epoch < cfg.train.tp_d_warmup_epochs:
         lr = cfg.dataset.learning_rate * epoch / cfg.train.tp_d_warmup_epochs
@@ -402,7 +335,7 @@ def plot_training_history(
     history_train_accuracy: List[float],
     history_validation_loss: List[float],
     history_validation_accuracy: List[float],
-    save_path: str,
+    save_path: str
 ) -> None:
     # Determine number of epochs
     epochs = list(range(1, len(history_train_loss) + 1))
@@ -411,22 +344,20 @@ def plot_training_history(
     fig, (ax_loss, ax_acc) = plt.subplots(1, 2, figsize=(12, 5))
 
     # Plot loss
-    ax_loss.plot(epochs, history_train_loss, label="Training Loss", marker="o")
-    ax_loss.plot(epochs, history_validation_loss, label="Validation Loss", marker="o")
-    ax_loss.set_title("Loss over Epochs")
-    ax_loss.set_xlabel("Epoch")
-    ax_loss.set_ylabel("Loss")
+    ax_loss.plot(epochs, history_train_loss, label='Training Loss', marker='o')
+    ax_loss.plot(epochs, history_validation_loss, label='Validation Loss', marker='o')
+    ax_loss.set_title('Loss over Epochs')
+    ax_loss.set_xlabel('Epoch')
+    ax_loss.set_ylabel('Loss')
     ax_loss.legend()
     ax_loss.grid(True)
 
     # Plot accuracy
-    ax_acc.plot(epochs, history_train_accuracy, label="Training Accuracy", marker="o")
-    ax_acc.plot(
-        epochs, history_validation_accuracy, label="Validation Accuracy", marker="o"
-    )
-    ax_acc.set_title("Accuracy over Epochs")
-    ax_acc.set_xlabel("Epoch")
-    ax_acc.set_ylabel("Accuracy")
+    ax_acc.plot(epochs, history_train_accuracy, label='Training Accuracy', marker='o')
+    ax_acc.plot(epochs, history_validation_accuracy, label='Validation Accuracy', marker='o')
+    ax_acc.set_title('Accuracy over Epochs')
+    ax_acc.set_xlabel('Epoch')
+    ax_acc.set_ylabel('Accuracy')
     ax_acc.legend()
     ax_acc.grid(True)
 
