@@ -6,7 +6,7 @@ input_size: 512 # image resolution for the LPM
 num_classes: 2 # number of classes
 mean: [0.5] # 'auto' or a list of three numbers for RGB
 std: [0.5] # 'auto' or a list of three numbers for RGB
-learning_rate: 0.0001 # dataset-specific learning rate
+learning_rate: 0.0005 # dataset-specific learning rate
 image_channel_num: 3
 
 

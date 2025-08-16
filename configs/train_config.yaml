@@ -1,9 +1,12 @@
 train:
-  tp_d_epochs: 8
+  tp_d_epochs: 5
   tp_d_early_stopping_patience: 4
   tp_d_warmup_epochs: 2
-  tp_d_loss_weight_decay_rate: 0.01
-  tp_d_loss_weight: balance # null / balance / dynamic / list with shape num_classes. Weights for loss function. Don't use it with weighted sampling!
+  tp_d_loss_weight_decay_rate: 0.0001
+  tp_d_loss_weight: dynamic # null / balance / dynamic / list with shape num_classes. Weights for loss function. Don't use it with weighted sampling!
+  # tp_d_loss_weight_decay_rate: 0.01
+  # tp_d_loss_weight: balance # null / balance / dynamic / list with shape num_classes. Weights for loss function. Don't use it with weighted sampling!
+
 
   tp_c_epochs: 10
   tp_c_early_stopping_patience: 5
@@ -31,7 +34,7 @@ train:
   sam_start_epoch: 6
 
 # old config
-  #loss_weight: dynamic # null / balance / dynamic / list with shape num_classes. Weights for loss function. Don't use it with weighted sampling!
-  #loss_weight_decay_rate: 0.0001 # if loss_weights is dynamic, loss weight will decay from balance to equivalent weights
-  #warmup_epochs: 2 # set to 0 to disable warmup
+  # loss_weight: dynamic # null / balance / dynamic / list with shape num_classes. Weights for loss function. Don't use it with weighted sampling!
+  # loss_weight_decay_rate: 0.0001 # if loss_weights is dynamic, loss weight will decay from balance to equivalent weights
+  # warmup_epochs: 2 # set to 0 to disable warmup
   
