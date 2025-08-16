@@ -1,23 +1,3 @@
-#!/usr/bin/env python3
-"""
-Improved chest X-ray dataset setup + augmentation script with progress bars (tqdm).
-
-Key improvements:
-- deterministic seed control (--seed)
-- robust centered scaling (no top-left crop bug)
-- no repeated transforms per call (sample without replacement)
-- safe directory handling (pathlib)
-- proper Image.open context usage
-- augmentation metadata (json sidecar) saved with each augmented image
-- conservative elastic deformation
-- CLAHE via OpenCV (if available)
-- tqdm progress bars for copying/augmentation (graceful fallback if tqdm not installed)
-- retains the "copy test -> validation" behavior (intentionally unchanged)
-
-Usage:
-    python prepare_dataset.py --augment 1 --force --seed 42
-"""
-
 from __future__ import annotations
 
 import argparse
