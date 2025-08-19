@@ -16,4 +16,5 @@ image_channel_num: 3
 # preload_path: /content/dataset/preload_chest_xray
 # save_path: /content/output/result
 
+# learning_rate: 0.0005
 
