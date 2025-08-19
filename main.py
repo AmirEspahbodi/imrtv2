@@ -18,6 +18,8 @@ from src.utils.metrics import Estimator
 from data.builder import generate_dataset
 from src.builder import generate_model, load_weights
 from src.models import (
+    CoAtNetSideViTClassifier_1,
+    CoAtNetSideViTClassifier_2,
     CoAtNetSideViTClassifier_3,
     CoAtNetSideViTClassifier_3_reg,
     CoAtNetSideViTClassifier_4,
@@ -128,23 +130,53 @@ def main(cfg):
     frozen_encoder2, side_vit_model2 = generate_model(cfg)
     del frozen_encoder2
 
+    if cfg.network.model in ["coatnet_1", "coatnet_2"]:
+        frozen_encoder3, side_vit_model_cnn = generate_model(cfg)
+        del frozen_encoder3
+
     print(f"type cfg = {type(cfg)}")
     match cfg.network.model:
+        case "coatnet_1":
+            classifier_with_side_vits = CoAtNetSideViTClassifier_1(
+                side_vit1=side_vit_model1,
+                side_vit2=side_vit_model2,
+                side_vit_cnn=side_vit_model_cnn,
+                cfg=cfg,
+            ).to(cfg.base.device)
+        case "coatnet_2":
+            classifier_with_side_vits = CoAtNetSideViTClassifier_2(
+                side_vit1=side_vit_model1,
+                side_vit2=side_vit_model2,
+                side_vit_cnn=side_vit_model_cnn,
+                cfg=cfg,
+            ).to(cfg.base.device)
         case "coatnet_3":
-            EnhancedSideViTClassifier = CoAtNetSideViTClassifier_3
+            classifier_with_side_vits = CoAtNetSideViTClassifier_3(
+                side_vit1=side_vit_model1,
+                side_vit2=side_vit_model2,
+                cfg=cfg,
+            ).to(cfg.base.device)
         case "coatnet_3_reg":
-            EnhancedSideViTClassifier = CoAtNetSideViTClassifier_3_reg
+            classifier_with_side_vits = CoAtNetSideViTClassifier_3_reg(
+                side_vit1=side_vit_model1,
+                side_vit2=side_vit_model2,
+                cfg=cfg,
+            ).to(cfg.base.device)
         case "coatnet_4":
-            EnhancedSideViTClassifier = CoAtNetSideViTClassifier_4
+            classifier_with_side_vits = CoAtNetSideViTClassifier_4(
+                side_vit1=side_vit_model1,
+                side_vit2=side_vit_model2,
+                cfg=cfg,
+            ).to(cfg.base.device)
         case "coatnet_5":
-            EnhancedSideViTClassifier = CoAtNetSideViTClassifier_5
+            classifier_with_side_vits = CoAtNetSideViTClassifier_5(
+                side_vit1=side_vit_model1,
+                side_vit2=side_vit_model2,
+                cfg=cfg,
+            ).to(cfg.base.device)
         case _:
             raise RuntimeError()
-    classifier_with_side_vits = EnhancedSideViTClassifier(
-        side_vit1=side_vit_model1,
-        side_vit2=side_vit_model2,
-        cfg=cfg,
-    ).to(cfg.base.device)
+    
 
     estimator = Estimator(
         cfg.train.metrics, cfg.dataset.num_classes, cfg.train.criterion
