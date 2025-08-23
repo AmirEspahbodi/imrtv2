@@ -167,12 +167,6 @@ class CoAtNetSideViTClassifier_1(nn.Module):
 
 ## -----------------------------------------------------------------------------------------
 
-
-# --- Helper Modules (Unchanged) ---
-# DepthwiseSeparableConv, SEBlock, and LightweightFPNFusion remain the same.
-# For brevity, their code is omitted here but should be included in your file.
-
-
 class DepthwiseSeparableConv(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size=3, padding=1, bias=False):
         super().__init__()
@@ -210,10 +204,10 @@ class SEBlock(nn.Module):
 
 
 class LightweightFPNFusion(nn.Module):
-    def __init__(self, c2_dim, c3_dim, fusion_dim, out_dim):
+    def __init__(self, in_1_dim, in_2_dim, fusion_dim, out_dim):
         super().__init__()
-        self.top_down_proj = nn.Conv2d(c3_dim, fusion_dim, kernel_size=1, bias=False)
-        self.lateral_proj = nn.Conv2d(c2_dim, fusion_dim, kernel_size=1, bias=False)
+        self.top_down_proj = nn.Conv2d(in_2_dim, fusion_dim, kernel_size=1, bias=False)
+        self.lateral_proj = nn.Conv2d(in_1_dim, fusion_dim, kernel_size=1, bias=False)
         self.post_fusion_conv = nn.Sequential(
             DepthwiseSeparableConv(fusion_dim, fusion_dim, kernel_size=3, padding=1),
             nn.BatchNorm2d(fusion_dim),
@@ -257,48 +251,89 @@ class CoAtNetSideViTClassifier_2(nn.Module):
             features_only=True,
             drop_path_rate=drop_path_rate,
         )
+        
+        backbone_trainable_layers = [
+            int(i) - 1 for i in cfg.network.backbone_trainable_layers
+        ]
+        if backbone_trainable_layers == [0, 1, 2, 3] or backbone_trainable_layers == (
+            0,
+            1,
+            2,
+            3,
+        ):
+            for name, param in self.backbone.named_parameters():
+                total_params_count += param.numel()
+                if any([f"blocks.{i}" in name for i in backbone_trainable_layers]):
+                    trainable_params_count += param.numel()
+        else:
+            # --- Fine-tuning Strategy (Unchanged) ---
+            for param in self.backbone.parameters():
+                param.requires_grad = False
+            for name, param in self.backbone.named_parameters():
+                total_params_count += param.numel()
+                if any([f"blocks.{i}" in name for i in backbone_trainable_layers]):
+                    param.requires_grad = True
+                    trainable_params_count += param.numel()
 
-        # --- Fine-tuning Strategy (Unchanged) ---
-        for param in self.backbone.parameters():
-            param.requires_grad = False
-        for name, param in self.backbone.named_parameters():
-            if any([f"blocks.{i}" in name for i in (2, 3)]):
-                param.requires_grad = True
+        feature_info = self.cnn_backbone.feature_info.channels()
+        self.channels = feature_info
+        print(f"    Feature map channels extracted: {feature_info}")
 
-        # --- Channel Dimensions (Unchanged) ---
-        feature_info = self.backbone.feature_info
-        c2_dim = feature_info[2]["num_chs"]
-        c3_dim = feature_info[3]["num_chs"]
-        c4_dim = feature_info[4]["num_chs"]
+        if not backbone_trainable_layers:
+            print("    All backbone layers are FROZEN.")
+        else:
+            frozen_params_count = total_params_count - trainable_params_count
+            print(f"    Trainable blocks: {backbone_trainable_layers}")
+            print(f"    Trainable parameters: {trainable_params_count:,}")
+            print(f"    Frozen parameters: {frozen_params_count:,}")
+            
 
         in_ch = self.cfg.dataset.image_channel_num
         num_classes = self.cfg.dataset.num_classes
+        
+        # side vits srream features
+        self.vit1_feature_strame = [int(i) - 1 for i in cfg.network.vit1_feature_strame]
+        self.vit2_feature_strame = [int(i) - 1 for i in cfg.network.vit2_feature_strame]
 
         # --- Input Processing for Side-ViTs ---
 
-        # 1. FPN Fusion for Side-ViT 1 (Unchanged)
-        fusion_dim = getattr(self.cfg, "fpn_fusion_dim", 64)
-        self.fpn_fusion = LightweightFPNFusion(
-            c2_dim=c2_dim, c3_dim=c3_dim, fusion_dim=fusion_dim, out_dim=in_ch
-        )
+        # Side-ViT 1 input
+        if len(self.vit1_feature_strame)==2:
+            fusion_dim = getattr(self.cfg, "fpn_fusion_dim", 64)
+            self.vit1_in = LightweightFPNFusion(
+                in_1_dim=feature_info[self.vit1_feature_strame[0]], in_2_dim=feature_info[self.vit1_feature_strame[1]], fusion_dim=fusion_dim, out_dim=in_ch
+            )
+        else:
+            bottleneck_dim = getattr(self.cfg, "proj_bottleneck_dim", 32)
+            self.vit1_in = nn.Sequential(
+                nn.Conv2d(feature_info[self.vit1_feature_strame[0]], bottleneck_dim, kernel_size=1, bias=False),
+                nn.BatchNorm2d(bottleneck_dim),
+                nn.ReLU(inplace=True),
+                nn.Conv2d(bottleneck_dim, in_ch, kernel_size=1, bias=False),
+            )
 
-        # ✨ NEW: Factorized Projection for Side-ViT 2
-        # Instead of a single Conv2d(c4_dim, in_ch), we factorize it to reduce parameters.
-        # This projects down to a small bottleneck before projecting up to the target channel size.
-        bottleneck_dim = getattr(self.cfg, "proj_bottleneck_dim", 32)
-        self.proj_sv2 = nn.Sequential(
-            nn.Conv2d(c4_dim, bottleneck_dim, kernel_size=1, bias=False),
-            nn.BatchNorm2d(bottleneck_dim),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(bottleneck_dim, in_ch, kernel_size=1, bias=False),
-        )
 
-        # ✨ NEW: Shared Modules for Regularization
+        # Side-ViT 2 input
+        if len(self.vit2_feature_strame)==2:
+            fusion_dim = getattr(self.cfg, "fpn_fusion_dim", 64)
+            self.vit2_in = LightweightFPNFusion(
+                in_1_dim=feature_info[self.vit2_feature_strame[0]], in_2_dim=feature_info[self.vit2_feature_strame[1]], fusion_dim=fusion_dim, out_dim=in_ch
+            )
+        else:
+            bottleneck_dim = getattr(self.cfg, "proj_bottleneck_dim", 32)
+            self.vit2_in = nn.Sequential(
+                nn.Conv2d(feature_info[self.vit2_feature_strame[0]], bottleneck_dim, kernel_size=1, bias=False),
+                nn.BatchNorm2d(bottleneck_dim),
+                nn.ReLU(inplace=True),
+                nn.Conv2d(bottleneck_dim, in_ch, kernel_size=1, bias=False),
+            )
+
+        # Shared Modules for Regularization
         # Use the same SE and DropBlock modules for both paths to reduce parameters.
         self.shared_se_block = SEBlock(channel=in_ch)
         self.shared_drop_block = DropBlock2d(drop_prob=drop_block_p, block_size=7)
 
-        # --- Side-ViT Ensembles (Unchanged) ---
+        # --- Side-ViT Ensembles ---
         self.sidevit1 = side_vit1
         self.sidevit2 = side_vit2
         self.side_vit_cnn = side_vit_cnn
@@ -318,11 +353,15 @@ class CoAtNetSideViTClassifier_2(nn.Module):
 
     def forward(self, x: torch.Tensor, K_value=None, Q_value=None) -> torch.Tensor:
         features = self.backbone(x)
-        f2, f3, f4 = features[2], features[3], features[4]
+        feature_stream = [features[1], features[2], features[3], features[4]]
 
         # --- Side-ViT 1 Input ---
         side_input_size = self.cfg.network.side_input_size
-        sv1_in = self.fpn_fusion(f_shallow=f2, f_deep=f3)
+        if len(self.vit1_feature_strame)==2:
+            sv1_in = self.vit1_in(f_shallow=feature_stream[self.vit1_feature_strame[0]], f_deep=feature_stream[self.vit1_feature_strame[1]])
+        else:
+            sv1_in = self.vit1_in(feature_stream[self.vit1_feature_strame[0]])
+
         sv1_in = F.interpolate(
             sv1_in,
             size=(side_input_size, side_input_size),
@@ -333,7 +372,11 @@ class CoAtNetSideViTClassifier_2(nn.Module):
         sv1_in = self.shared_drop_block(sv1_in)  # Using shared module
 
         # --- Side-ViT 2 Input ---
-        sv2_in = self.proj_sv2(f4)  # Using factorized projection
+        if len(self.vit2_feature_strame)==2:
+            sv2_in = self.vit2_in(f_shallow=feature_stream[self.vit2_feature_strame[0]], f_deep=feature_stream[self.vit2_feature_strame[1]])
+        else:
+            sv2_in = self.vit2_in(feature_stream[self.vit2_feature_strame[0]])
+
         sv2_in = F.interpolate(
             sv2_in,
             size=(side_input_size, side_input_size),
@@ -389,7 +432,10 @@ class MultiScaleCoAtNetBackbone(nn.Module):
             2,
             3,
         ):
-            pass
+            for name, param in self.cnn_backbone.named_parameters():
+                total_params_count += param.numel()
+                if any(block_name in name for block_name in trainable_block_names):
+                    trainable_params_count += param.numel()
         else:
             for name, param in self.cnn_backbone.named_parameters():
                 total_params_count += param.numel()
