@@ -2,8 +2,8 @@ train:
   tp_d_epochs: 5
   tp_d_early_stopping_patience: 4
   tp_d_warmup_epochs: 2
-  tp_d_loss_weight_decay_rate: 0.02
-  # tp_d_loss_weight_decay_rate: 0.0001
+  # tp_d_loss_weight_decay_rate: 0.02
+  tp_d_loss_weight_decay_rate: 0.0001
   tp_d_loss_weight: dynamic # null / balance / dynamic / list with shape num_classes. Weights for loss function. Don't use it with weighted sampling!
   # tp_d_loss_weight_decay_rate: 0.01
   # tp_d_loss_weight: balance # null / balance / dynamic / list with shape num_classes. Weights for loss function. Don't use it with weighted sampling!
