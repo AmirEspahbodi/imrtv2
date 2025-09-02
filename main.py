@@ -25,7 +25,7 @@ from src.models import (
     CoAtNetSideViTClassifier_4,
     CoAtNetSideViTClassifier_5,
 )
-
+from parameters_count import model_params_summary
 from evaluate_model import evaluate_model
 
 
@@ -193,6 +193,18 @@ def main(cfg):
         train_pipeline = train_d
     else:
         raise RuntimeError()
+    model_summary_json = model_params_summary(classifier_with_side_vits)
+    finall_resul_path = os.path.join(
+        cfg.dataset.save_path, "model_summary_json.json"
+    )
+
+    with open(finall_resul_path, "w") as fp:
+        json.dump(
+            model_summary_json,
+            fp,
+            indent=4,
+        )
+        
     used_loss_function = train_pipeline(
         cfg=cfg,
         frozen_encoder=frozen_encoder,
@@ -205,6 +217,9 @@ def main(cfg):
     print("This is the performance of the best validation model:")
     checkpoint = os.path.join(cfg.dataset.save_path, "best_validation_weights.pt")
     load_weights(classifier_with_side_vits, checkpoint)
+
+
+
     save_metics(
         cfg,
         frozen_encoder,

@@ -251,6 +251,8 @@ class CoAtNetSideViTClassifier_2(nn.Module):
             features_only=True,
             drop_path_rate=drop_path_rate,
         )
+        total_params_count = 0
+        trainable_params_count = 0
         
         backbone_trainable_layers = [
             int(i) - 1 for i in cfg.network.backbone_trainable_layers
