@@ -55,6 +55,9 @@ class Trainer:
 
             self.optimizer.zero_grad()
             with torch.amp.autocast(enabled=self.scaler is not None, device_type=self.device.type):
+                # print(f"X_side.shape = {X_side.shape}")
+                # print(f"key_states.shape = {key_states.shape}")
+                # print(f"value_states.shape = {value_states.shape}")
                 embeddings = self.model(X_side, key_states, value_states)
                 loss = self.loss_fn(embeddings, y_true)
 
@@ -75,7 +78,7 @@ class Trainer:
         return total_loss / len(self.train_loader)
 
     @torch.no_grad()
-    def evaluate(self, dataloader: DataLoader) -> Dict[str, float]:
+    def evaluate(self) -> Dict[str, float]:
         """
         Performs evaluation on the validation set.
         For validation, we compute a proxy-based accuracy: for each image, is
@@ -90,7 +93,7 @@ class Trainer:
         # Get normalized proxies from the loss function module
         proxies = torch.nn.functional.normalize(self.loss_fn.proxies, p=2, dim=1)
         
-        progress_bar = tqdm(dataloader, desc="Evaluating", colour="yellow")
+        progress_bar = tqdm(self.val_loader, desc="Evaluating", colour="yellow")
         for batch in progress_bar:
             X_side, key_states, value_states, y_true, _ = prepare_batch(
                 batch, self.cfg, self.frozen_model, self.device
@@ -108,7 +111,7 @@ class Trainer:
             total_samples += y_true.size(0)
             total_loss += loss.item()
 
-        avg_loss = total_loss / len(dataloader)
+        avg_loss = total_loss / len(self.val_loader)
         accuracy = correct_predictions / total_samples
         
         return {"val_loss": avg_loss, "proxy_accuracy": accuracy}

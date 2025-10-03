@@ -36,13 +36,11 @@ def main(hydra_cfg):
     train_dataset = CarAccessoriesDataset(
         hydra_cfg.dataset.preload_path,
         data_path='/home/amirh/work/reza_imrt/imrtV2/car_accessories_dataset/train', 
-        num_views=cfg.dataset.num_views, 
         transform=train_transform
     )
     val_dataset = CarAccessoriesDataset(
         hydra_cfg.dataset.preload_path,
         data_path='/home/amirh/work/reza_imrt/imrtV2/car_accessories_dataset/validation', 
-        num_views=cfg.dataset.num_views, 
         transform=val_transform
     )
 
