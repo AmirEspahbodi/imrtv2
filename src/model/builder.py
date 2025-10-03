@@ -6,19 +6,16 @@ from src.utils.func import print_msg, select_out_features
 from .bridge import FineGrainedPromptTuning, FusionModule
 from .side_vit import ViTForImageClassification as SideViT
 from .frozen_vit import ViTForImageClassification as FrozenViT
-from .side_vit_cnn import ViTForImageClassification as SideViTCNN
 
 
 def generate_model(cfg, use_cnn=False):
-    model = build_model(cfg, use_cnn=use_cnn)
+    model = build_model(cfg)
     model = model.to(cfg.base.device)
 
     # the computation of the number of learnable parameters only works when the preloading is disabled
     if not cfg.dataset.preload_path:
-        print("here 0 0 0 0 0 0 0 0")
         frozen_encoder = None
     else:
-        print("here 1 1 1 1 1 1 1 1")
         frozen_encoder = build_frozen_encoder(cfg).to(cfg.base.device)
 
         num_learnable_params = 0
@@ -50,7 +47,7 @@ def load_weights(model, checkpoint):
     print_msg("Load weights form {}".format(checkpoint))
 
 
-def build_model(cfg, use_cnn=False):
+def build_model(cfg):
     out_features = select_out_features(cfg.dataset.num_classes, cfg.train.criterion)
     num_layers = len(parse_layers(cfg.network.layers_to_extract))
     vit_config = ViTConfig.from_pretrained(cfg.network.pretrained_path)
@@ -77,10 +74,7 @@ def build_model(cfg, use_cnn=False):
         hidden_dropout_prob=0,
         attention_probs_dropout_prob=0,
     )
-    if not use_cnn:
-        side_encoder = SideViT(side_config)
-    else:
-        side_encoder = SideViTCNN(side_config)
+    side_encoder = SideViT(side_config)
 
     model = FineGrainedPromptTuning(side_encoder, fusion_module)
     return model

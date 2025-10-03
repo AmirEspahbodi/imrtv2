@@ -1,1 +1,0 @@
-python .\main.py dataset=chest_X_ray network=coatnet_4 --btl --v1fs 2 3  --v2fs 4 --tp D

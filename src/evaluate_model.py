@@ -12,21 +12,12 @@ from src.utils.func import select_target_type
 
 def prepare_batch(batch, cfg, frozen_encoder, device):
     """Prepares a single batch of data, moving it to the correct device."""
-    if cfg.dataset.get("preload_path"):
-        X_side, key_states, value_states, y = batch
-        key_states, value_states = key_states.to(device), value_states.to(device)
-        key_states, value_states = (
-            key_states.transpose(0, 1),
-            value_states.transpose(0, 1),
-        )
-    else:
-        X_lpm, X_side, y = batch
-        X_lpm = X_lpm.to(device)
-        with torch.no_grad():
-            _, key_states, value_states = frozen_encoder(
-                X_lpm, interpolate_pos_encoding=True
-            )
-
+    X_side, key_states, value_states, y = batch
+    key_states, value_states = key_states.to(device), value_states.to(device)
+    key_states, value_states = (
+        key_states.transpose(0, 1),
+        value_states.transpose(0, 1),
+    )
     X_side, y = X_side.to(device), y.to(device)
     y_true = select_target_type(y, cfg.train.get("criterion", "cross_entropy"))
     return X_side, key_states, value_states, y_true, y

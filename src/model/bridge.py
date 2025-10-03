@@ -14,7 +14,7 @@ class FineGrainedPromptTuning(torch.nn.Module):
         out = self.side_encoder(
             x_coarse, fine_grained_states, interpolate_pos_encoding=True
         )
-        return out.logits
+        return out
 
 
 class FusionModule(torch.nn.Module):

@@ -166,70 +166,6 @@ class CoAtNetSideViTClassifier_1(nn.Module):
 
 
 ## -----------------------------------------------------------------------------------------
-
-class MultiScaleCoAtNetBackbone(nn.Module):
-    def __init__(
-        self,
-        model_name: str,
-        in_chans: int = 3,
-        pretrained: bool = True,
-        backbone_trainable_layers: List[int] = [],
-    ):
-        super().__init__()
-
-        self.cnn_backbone = timm.create_model(
-            model_name,
-            pretrained=pretrained,
-            in_chans=in_chans,
-            features_only=True,
-            out_indices=(1, 2, 3, 4),
-        )
-
-        trainable_block_names = {f"blocks.{i}" for i in backbone_trainable_layers}
-
-        trainable_params_count = 0
-        total_params_count = 0
-
-        if backbone_trainable_layers == [0, 1, 2, 3] or backbone_trainable_layers == (
-            0,
-            1,
-            2,
-            3,
-        ):
-            for name, param in self.cnn_backbone.named_parameters():
-                total_params_count += param.numel()
-                if any(block_name in name for block_name in trainable_block_names):
-                    trainable_params_count += param.numel()
-        else:
-            for name, param in self.cnn_backbone.named_parameters():
-                total_params_count += param.numel()
-                # Check if the parameter belongs to one of the specified trainable blocks
-                if any(block_name in name for block_name in trainable_block_names):
-                    param.requires_grad = True
-                    trainable_params_count += param.numel()
-                else:
-                    param.requires_grad = False
-
-        print(
-            f"--- Initialized CNN Backbone: {model_name} (pretrained={pretrained}) ---"
-        )
-        feature_info = self.cnn_backbone.feature_info.channels()
-        self.channels = feature_info
-        print(f"    Feature map channels extracted: {feature_info}")
-
-        if not backbone_trainable_layers:
-            print("    All backbone layers are FROZEN.")
-        else:
-            frozen_params_count = total_params_count - trainable_params_count
-            print(f"    Trainable blocks: {backbone_trainable_layers}")
-            print(f"    Trainable parameters: {trainable_params_count:,}")
-            print(f"    Frozen parameters: {frozen_params_count:,}")
-
-    def forward(self, x: torch.Tensor) -> List[torch.Tensor]:
-        feature_maps = self.cnn_backbone(x)
-        return feature_maps
-
-
 class DepthwiseSeparableConv(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size=3, padding=1, bias=False):
         super().__init__()
@@ -766,6 +702,70 @@ class CoAtNetSideViTClassifier_3_reg(nn.Module):
 
 
 #####################################################################################################################################################################
+
+class MultiScaleCoAtNetBackbone(nn.Module):
+    def __init__(
+        self,
+        model_name: str,
+        in_chans: int = 3,
+        pretrained: bool = True,
+        backbone_trainable_layers: List[int] = [],
+    ):
+        super().__init__()
+
+        self.cnn_backbone = timm.create_model(
+            model_name,
+            pretrained=pretrained,
+            in_chans=in_chans,
+            features_only=True,
+            out_indices=(1, 2, 3, 4),
+        )
+
+        trainable_block_names = {f"blocks.{i}" for i in backbone_trainable_layers}
+
+        trainable_params_count = 0
+        total_params_count = 0
+
+        if backbone_trainable_layers == [0, 1, 2, 3] or backbone_trainable_layers == (
+            0,
+            1,
+            2,
+            3,
+        ):
+            for name, param in self.cnn_backbone.named_parameters():
+                total_params_count += param.numel()
+                if any(block_name in name for block_name in trainable_block_names):
+                    trainable_params_count += param.numel()
+        else:
+            for name, param in self.cnn_backbone.named_parameters():
+                total_params_count += param.numel()
+                # Check if the parameter belongs to one of the specified trainable blocks
+                if any(block_name in name for block_name in trainable_block_names):
+                    param.requires_grad = True
+                    trainable_params_count += param.numel()
+                else:
+                    param.requires_grad = False
+
+        print(
+            f"--- Initialized CNN Backbone: {model_name} (pretrained={pretrained}) ---"
+        )
+        feature_info = self.cnn_backbone.feature_info.channels()
+        self.channels = feature_info
+        print(f"    Feature map channels extracted: {feature_info}")
+
+        if not backbone_trainable_layers:
+            print("    All backbone layers are FROZEN.")
+        else:
+            frozen_params_count = total_params_count - trainable_params_count
+            print(f"    Trainable blocks: {backbone_trainable_layers}")
+            print(f"    Trainable parameters: {trainable_params_count:,}")
+            print(f"    Frozen parameters: {frozen_params_count:,}")
+
+    def forward(self, x: torch.Tensor) -> List[torch.Tensor]:
+        feature_maps = self.cnn_backbone(x)
+        return feature_maps
+
+
 class GatedAttentionModule(nn.Module):
     def __init__(
         self, low_level_channels: int, high_level_channels: int, output_channels: int
@@ -960,13 +960,13 @@ class CoAtNetSideViTClassifier_4(nn.Module):
             mode="bilinear",
             align_corners=False,
         )
+        
 
         vit_out1 = self.side_vit1(vit_input1, key_states, value_states)
         vit_out2 = self.side_vit2(vit_input2, key_states, value_states)
 
         features = torch.cat([vit_out1, vit_out2], dim=1)
-        logits = self.classifier_head(features)
-        return logits
+        return features
 
 
 class CoAtNetSideViTClassifier_5(nn.Module):

@@ -201,3 +201,5 @@ result*/
 splited_chest_xray*/
 *.xlsx
 *.xlsx#
+car_accessories_dataset/
+preload_dataset/

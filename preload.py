@@ -10,7 +10,7 @@ from data.dataset import FineImageFolder
 
 from src.utils.func import print_msg
 from tqdm import tqdm
-from src.builder import build_frozen_encoder
+from src.model.builder import build_frozen_encoder
 
 
 @hydra.main(config_path="configs", config_name="config", version_base="1.1")
