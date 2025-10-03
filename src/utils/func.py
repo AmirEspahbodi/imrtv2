@@ -90,16 +90,19 @@ def one_hot(labels, num_classes, device, dtype):
     return y[labels]
 
 
-# convert type of target according to criterion
-def select_target_type(y, criterion):
-    if criterion in ["cross_entropy", "kappa_loss"]:
+
+def select_target_type(y: torch.Tensor, criterion: str) -> torch.Tensor:
+    """
+    Selects the appropriate target type based on the loss criterion.
+    """
+    if criterion in ["cross_entropy", "kappa_loss", "proxy_anchor"]:
         y = y.long()
     elif criterion in ["mean_square_error", "mean_absolute_error", "smooth_L1"]:
         y = y.float()
     elif criterion in ["focal_loss"]:
         y = y.to(dtype=torch.int64)
     else:
-        raise NotImplementedError("Not implemented criterion.")
+        raise NotImplementedError(f"Not implemented criterion: {criterion}")
     return y
 
 

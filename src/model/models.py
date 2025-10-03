@@ -703,6 +703,14 @@ class CoAtNetSideViTClassifier_3_reg(nn.Module):
 
 #####################################################################################################################################################################
 
+# image_retrieval/models/architecture.py
+
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import timm
+from typing import List, Any
+
 class MultiScaleCoAtNetBackbone(nn.Module):
     def __init__(
         self,
@@ -919,16 +927,12 @@ class CoAtNetSideViTClassifier_4(nn.Module):
         self.side_vit1 = side_vit1
         self.side_vit2 = side_vit2
 
-        # --- Fusion of Side-ViT Outputs ---
-        self.classifier_head = nn.Sequential(
-            nn.LayerNorm(self.num_classes * NUM_VIT_STREAMS),
-            nn.Linear(
-                self.num_classes * NUM_VIT_STREAMS,
-                self.num_classes * NUM_VIT_STREAMS * 2,
-            ),
+        # --- Embedding Projection (192-dimensional output) ---
+        self.embedding_projection = nn.Sequential(
+            nn.Linear(self.num_classes * NUM_VIT_STREAMS, 192),
+            nn.LayerNorm(192),
             nn.GELU(),
-            nn.Dropout(0.2),
-            nn.Linear(self.num_classes * NUM_VIT_STREAMS * 2, self.num_classes),
+            nn.Dropout(0.1)
         )
 
     def forward(self, x: torch.Tensor, key_states, value_states) -> torch.Tensor:
@@ -965,8 +969,11 @@ class CoAtNetSideViTClassifier_4(nn.Module):
         vit_out1 = self.side_vit1(vit_input1, key_states, value_states)
         vit_out2 = self.side_vit2(vit_input2, key_states, value_states)
 
-        features = torch.cat([vit_out1, vit_out2], dim=1)
-        return features
+        # Concatenate and project to 192-dimensional embeddings
+        concatenated_features = torch.cat([vit_out1, vit_out2], dim=1)
+        embeddings = self.embedding_projection(concatenated_features)
+        
+        return embeddings
 
 
 class CoAtNetSideViTClassifier_5(nn.Module):

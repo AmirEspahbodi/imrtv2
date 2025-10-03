@@ -6,7 +6,9 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from typing import Dict, Any
-from src.evaluate_model import evaluate_model, prepare_batch
+
+from src.utils.func import select_target_type
+
 
 
 class Trainer:
@@ -17,8 +19,8 @@ class Trainer:
         self,
         model: nn.Module,
         frozen_model: nn.Module,
-        train_dataset,
-        val_dataset,
+        train_loader,
+        val_loader,
         loss_fn: nn.Module,
         optimizer: Optimizer,
         device: torch.device,
@@ -34,7 +36,8 @@ class Trainer:
         self.scheduler = scheduler
         self.scaler = scaler
         self.cfg = cfg
-        self.train_loader, self.val_loader = initialize_dataloader(cfg, train_dataset, val_dataset)
+        self.train_loader = train_loader
+        self.val_loader = val_loader
 
     def train_one_epoch(self) -> float:
         """
@@ -72,67 +75,56 @@ class Trainer:
         return total_loss / len(self.train_loader)
 
     @torch.no_grad()
-    def evaluate(self) -> Dict[str, float]:
+    def evaluate(self, dataloader: DataLoader) -> Dict[str, float]:
         """
         Performs evaluation on the validation set.
+        For validation, we compute a proxy-based accuracy: for each image, is
+        its closest proxy the one corresponding to its true class? This is a
+        good indicator of embedding space quality.
         """
         self.model.eval()
         total_loss = 0.0
         correct_predictions = 0
         total_samples = 0
-
-        progress_bar = tqdm(self.val_loader, desc="Evaluating", colour="yellow")
+        
+        # Get normalized proxies from the loss function module
+        proxies = torch.nn.functional.normalize(self.loss_fn.proxies, p=2, dim=1)
+        
+        progress_bar = tqdm(dataloader, desc="Evaluating", colour="yellow")
         for batch in progress_bar:
-            # prepare_batch returns the same inputs as in training
             X_side, key_states, value_states, y_true, _ = prepare_batch(
                 batch, self.cfg, self.frozen_model, self.device
             )
 
-            # No need to zero_grad in evaluation
-            with torch.amp.autocast(enabled=self.scaler is not None, device_type=self.device.type):
+            with torch.cuda.amp.autocast(enabled=self.scaler is not None):
                 embeddings = self.model(X_side, key_states, value_states)
                 loss = self.loss_fn(embeddings, y_true)
-
-            # Map embeddings into proxy space (handles mismatched dims / projector)
-            embeddings_in_proxy_space = self.loss_fn.map_embeddings_to_proxy_space(embeddings)
-            proxies = self.loss_fn.get_normalized_proxies()  # (num_classes, proxy_dim)
-
-            # Calculate proxy-based accuracy using matched dims
-            cos_sim = torch.matmul(embeddings_in_proxy_space, proxies.T)
+            
+            # Calculate proxy-based accuracy
+            cos_sim = torch.matmul(embeddings, proxies.T)
             predicted_labels = torch.argmax(cos_sim, dim=1)
-
+            
             correct_predictions += (predicted_labels == y_true).sum().item()
             total_samples += y_true.size(0)
             total_loss += loss.item()
 
-        avg_loss = total_loss / len(self.val_loader)
-        accuracy = correct_predictions / total_samples if total_samples > 0 else 0.0
-
+        avg_loss = total_loss / len(dataloader)
+        accuracy = correct_predictions / total_samples
+        
         return {"val_loss": avg_loss, "proxy_accuracy": accuracy}
+    
 
 
-
-def initialize_dataloader(cfg, train_dataset, val_dataset):
-    # (No changes from previous version)
-    batch_size = cfg.train.get("batch_size", 16)
-    num_workers = cfg.train.get("num_workers", 4)
-    pin_memory = cfg.train.get("pin_memory", True)
-
-    train_loader = DataLoader(
-        train_dataset,
-        batch_size=batch_size,
-        shuffle=True,
-        num_workers=num_workers,
-        drop_last=True,
-        pin_memory=pin_memory,
+def prepare_batch(batch, cfg, frozen_encoder, device):
+    """Prepares a single batch of data, moving it to the correct device."""
+    X_side, key_states, value_states, y = batch
+    key_states, value_states = key_states.to(device), value_states.to(device)
+    key_states, value_states = (
+        key_states.transpose(0, 1),
+        value_states.transpose(0, 1),
     )
-    val_loader = DataLoader(
-        val_dataset,
-        batch_size=batch_size,
-        shuffle=False,
-        num_workers=num_workers,
-        drop_last=False,
-        pin_memory=pin_memory,
-    )
-    return train_loader, val_loader
+    X_side, y = X_side.to(device), y.to(device)
+    y_true = select_target_type(y, cfg.train.criterion)
+    return X_side, key_states, value_states, y_true, y
+
 

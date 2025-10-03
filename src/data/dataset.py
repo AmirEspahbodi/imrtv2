@@ -1,27 +1,23 @@
 # image_retrieval/data/dataset.py
 
 import os
+import torch
 from typing import Callable, Dict, List, Tuple
 from PIL import Image
-import torch
 from torch.utils.data import Dataset
-from torchvision import transforms as T
+from torchvision import transforms as T, datasets
+from safetensors.torch import load_file
+from pathlib import Path
+
 
 class CarAccessoriesDataset(Dataset):
     """
     Custom PyTorch Dataset for car accessories.
-    Assumes a directory structure like:
-    /data_path/
-        /product_0001/
-            view_1.jpg
-            view_2.jpg
-            view_3.jpg
-            ... (augmented images)
-        /product_0002/
-            ...
+    Now returns key_states and value_states for the new model.
     """
-    def __init__(self, data_path: str, num_views: int, transform: Callable):
+    def __init__(self, preload_path, data_path: str, num_views: int, transform: Callable):
         super().__init__()
+        self.preload_path = preload_path
         self.data_path = data_path
         self.num_views = num_views
         self.transform = transform
@@ -59,10 +55,15 @@ class CarAccessoriesDataset(Dataset):
         view_paths, label = self.samples[index]
         
         images = []
+        keys_states = []
+        values_states = []
         for path in view_paths:
             try:
                 img = Image.open(path).convert("RGB")
                 images.append(self.transform(img))
+                key_states, value_states = self.preload(path)
+                keys_states.append(key_states)
+                values_states.append(value_states)
             except Exception as e:
                 print(f"Warning: Could not load image {path}. Skipping. Error: {e}")
                 # Return a dummy tensor if an image fails to load
@@ -70,22 +71,15 @@ class CarAccessoriesDataset(Dataset):
         
         # Stack the views into a single tensor: (num_views, C, H, W)
         image_tensor = torch.stack(images, dim=0)
-        
-        return {
-            "images": image_tensor,
-            "label": torch.tensor(label, dtype=torch.long)
-        }
+        key_states_tensor = torch.stack(keys_states, dim=0)
+        value_states_tensor = torch.stack(values_states, dim=0)
+        return image_tensor, key_states_tensor, value_states_tensor, label
 
-def get_transforms(image_size: Tuple[int, int]) -> Callable:
-    """
-    Returns the image transformations for training and validation.
-    The normalization stats must match those used for pre-training the ViT[cite: 164, 165].
-    """
-    # These are standard ImageNet stats, often used for ViT pre-training
-    mean, std = [0.485, 0.456, 0.406], [0.229, 0.224, 0.225]
-    
-    return T.Compose([
-        T.Resize(image_size),
-        T.ToTensor(),
-        T.Normalize(mean=mean, std=std)
-    ])
+    def preload(self, path):
+        # print(f"path = {path}")
+        # print(f"type path = {type(path)}")
+        
+        states_path = os.path.join(self.preload_path, Path(path).stem + ".safetensors")
+        states = load_file(states_path)
+        key_states, value_states = states["key_states"], states["value_states"]
+        return key_states, value_states
