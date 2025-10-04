@@ -18,7 +18,7 @@ class DatasetConfig:
     image_size: Tuple[int, int] = (224, 224)
     image_channel_num: int = 3
     num_views: int = 3
-    num_classes: int = 1500
+    num_classes: int = 118
     batch_size: int = 32
     num_workers: int = 8
 
@@ -27,8 +27,8 @@ class LossConfig:
     """Configuration for the loss function."""
     num_classes: int = 1500
     embedding_dim: int = 192  # Updated for new model output
-    margin: float = 0.5
-    alpha: float = 32.0
+    margin: float = 0.1
+    alpha: float = 8.0
 
 @dataclass
 class TrainConfig:

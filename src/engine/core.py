@@ -81,9 +81,6 @@ class Trainer:
     def evaluate(self) -> Dict[str, float]:
         """
         Performs evaluation on the validation set.
-        For validation, we compute a proxy-based accuracy: for each image, is
-        its closest proxy the one corresponding to its true class? This is a
-        good indicator of embedding space quality.
         """
         self.model.eval()
         total_loss = 0.0
@@ -99,23 +96,33 @@ class Trainer:
                 batch, self.cfg, self.frozen_model, self.device
             )
 
-            with torch.cuda.amp.autocast(enabled=self.scaler is not None):
+            with torch.amp.autocast(device_type=self.device.type, enabled=self.scaler is not None):
                 embeddings = self.model(X_side, key_states, value_states)
                 loss = self.loss_fn(embeddings, y_true)
+            print()
             
             # Calculate proxy-based accuracy
-            cos_sim = torch.matmul(embeddings, proxies.T)
+            embeddings_normalized = torch.nn.functional.normalize(embeddings, p=2, dim=1)
+            
+            # FIX: Ensure both tensors have the same dtype
+            embeddings_normalized = embeddings_normalized.to(proxies.dtype)
+            
+            cos_sim = torch.matmul(embeddings_normalized, proxies.T)
             predicted_labels = torch.argmax(cos_sim, dim=1)
             
             correct_predictions += (predicted_labels == y_true).sum().item()
             total_samples += y_true.size(0)
             total_loss += loss.item()
 
+        print(f"total_loss = {total_loss}")
+        print(f"len(self.val_loader) = {len(self.val_loader)}")
+        print(f"correct_predictions = {correct_predictions}")
+        print(f"total_samples = {total_samples}")
         avg_loss = total_loss / len(self.val_loader)
-        accuracy = correct_predictions / total_samples
+        accuracy = correct_predictions / total_samples if total_samples > 0 else 0.0
         
         return {"val_loss": avg_loss, "proxy_accuracy": accuracy}
-    
+        
 
 
 def prepare_batch(batch, cfg, frozen_encoder, device):

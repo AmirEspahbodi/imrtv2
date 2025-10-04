@@ -930,9 +930,9 @@ class CoAtNetSideViTClassifier_4(nn.Module):
         # --- Embedding Projection (192-dimensional output) ---
         self.embedding_projection = nn.Sequential(
             nn.Linear(192, 2*192),
-            nn.LayerNorm(192),
+            nn.LayerNorm(2*192),
             nn.GELU(),
-            nn.Dropout(0.1),
+            nn.Dropout(0.2),
             nn.Linear(2*192, 192),
 
         )
@@ -976,10 +976,10 @@ class CoAtNetSideViTClassifier_4(nn.Module):
         # print(f"vit_out2.shape = {vit_out2.shape}")
         concatenated_features = torch.cat([vit_out1, vit_out2], dim=1)
         # print(f"concatenated_features.shape = {concatenated_features.shape}")
-        # embeddings = self.embedding_projection(concatenated_features)
+        embeddings = self.embedding_projection(concatenated_features)
         # print(f"embeddings.shape = {embeddings.shape}")
         
-        return concatenated_features
+        return embeddings
 
 
 class CoAtNetSideViTClassifier_5(nn.Module):
