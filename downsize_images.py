@@ -2,7 +2,7 @@ import os
 from PIL import Image
 from tqdm import tqdm # A library for a smart progress bar
 
-def resize_images_in_directory(source_dir, dest_dir, target_size=(384, 384)):
+def resize_images_in_directory(source_dir, dest_dir, target_size=(512, 512)):
     """
     Recursively finds all images in the source directory, resizes them,
     and saves them to the destination directory, preserving the folder structure.

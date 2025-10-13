@@ -7,7 +7,7 @@ import numpy as np
 # --- CONFIGURATION ---
 INPUT_DIR = "E:\imrtv2\\testing\\102245"
 OUTPUT_DIR = "E:\imrtv2\\testing\\result"
-TARGET_SIZE = 384
+TARGET_SIZE = 512
 # Threshold to distinguish product from white background (0-255).
 # Lower this value if the background is grayish.
 BACKGROUND_THRESHOLD = 245
