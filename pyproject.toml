@@ -21,10 +21,6 @@ dependencies = [
 ]
 
 [tool.poetry]
-name = "MIC"
-version = "0.1.0"
-description = ""
-authors = ["a.espahbodi <dev.amir.espahbodi@gmail.com>"]
 packages = [{include = "*", from = "."}]
 
 [[tool.poetry.source]]

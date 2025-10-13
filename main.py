@@ -10,7 +10,7 @@ import argparse
 # --- Import project components ---
 from src.config import cfg
 from src.data.dataset import CarAccessoriesDataset, get_transforms
-from src.model.models import CoAtNetSideViTClassifier_4
+from model.models import CoAtNetSideViTClassifier_4
 from src.losses.proxy_anchor import ProxyAnchorLoss
 from src.engine.core import Trainer
 from src.model.builder import generate_model

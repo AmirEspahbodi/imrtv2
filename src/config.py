@@ -15,7 +15,7 @@ class NetworkConfig:
 class DatasetConfig:
     """Configuration for data loading and processing."""
     data_path: str = "/path/to/your/product_images"
-    image_size: Tuple[int, int] = (224, 224)
+    image_size: Tuple[int, int] = (384, 384)
     image_channel_num: int = 3
     num_views: int = 3
     num_classes: int = 118
@@ -26,7 +26,7 @@ class DatasetConfig:
 class LossConfig:
     """Configuration for the loss function."""
     num_classes: int = 1500
-    embedding_dim: int = 192  # Updated for new model output
+    embedding_dim: int = 384  # Updated for new model output
     margin: float = 0.1
     alpha: float = 8.0
 

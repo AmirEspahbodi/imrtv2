@@ -35,12 +35,12 @@ def main(hydra_cfg):
     # Initialize datasets (you'll need to provide key_value_generator)
     train_dataset = CarAccessoriesDataset(
         hydra_cfg.dataset.preload_path,
-        data_path='/home/amirh/work/reza_imrt/imrtV2/car_accessories_dataset/train', 
+        data_path='E:\\imrtv2\\splited_dataset\\train', 
         transform=train_transform
     )
     val_dataset = CarAccessoriesDataset(
         hydra_cfg.dataset.preload_path,
-        data_path='/home/amirh/work/reza_imrt/imrtV2/car_accessories_dataset/validation', 
+        data_path='E:\\imrtv2\\splited_dataset\\validation', 
         transform=val_transform
     )
 

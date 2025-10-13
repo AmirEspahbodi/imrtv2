@@ -1,8 +1,8 @@
 name: chest_X_ray
-data_path: /home/amirh/work/reza_imrt/imrtV2/car_accessories_dataset
-preload_path: /home/amirh/work/reza_imrt/imrtV2/preload_dataset
-save_path: /home/amirh/work/reza_imrt/imrtV2/result
-input_size: 256 # image resolution for the LPM
+data_path: E:\imrtv2\splited_dataset
+preload_path: E:\imrtv2\preload_dataset
+save_path: E:\imrtv2\result
+input_size: 1024 # image resolution for the LPM
 num_classes: 118 # number of classes
 mean: [0.485, 0.456, 0.406] # 'auto' or a list of three numbers for RGB
 std: [0.229, 0.224, 0.225] # 'auto' or a list of three numbers for RGB

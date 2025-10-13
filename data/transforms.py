@@ -93,7 +93,7 @@ def data_transforms(cfg):
 
     if cfg.dataset.preload_path:
         # train_preprocess = transforms.Compose([*augmentations, *normalization])
-
+        print(f"here 111 {cfg.network.backbone_input_size}")
         train_preprocess = transforms.Compose([side_resize, *normalization])
         test_preprocess = transforms.Compose([side_resize, *normalization])
     else:
