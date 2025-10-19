@@ -6,34 +6,49 @@ import numpy as np
 from tqdm import tqdm
 import time
 
+import albumentations as A
+import cv2
 
 def create_augmentation_pipeline():
     return A.Compose([
         # --- Geometric Transformations ---
         # These are still valuable, but we'll apply them slightly less often.
         A.ShiftScaleRotate(
-            shift_limit=0.06,      # Slightly reduced for less drastic shifts
-            scale_limit=0.08,      # Slightly reduced for less zooming
-            rotate_limit=12,       # Reduced rotation angle
-            p=0.7,                 # Reduced probability from 0.8
+            shift_limit=0.08,      # Reduced from 0.08
+            scale_limit=0.1,       # Reduced from 0.1
+            rotate_limit=15,       # Reduced from 15
+            p=0.8,                 # Reduced from 0.8
             border_mode=cv2.BORDER_CONSTANT,
             value=[255, 255, 255]
         ),
-        A.HorizontalFlip(p=0.5), # A classic, highly effective augmentation
+
+        # Apply a slight perspective transformation.
+        A.Perspective(
+            scale=(0.02, 0.06),    # Reduced from (0.02, 0.06)
+            p=0.3,                 # Reduced from 0.4
+            pad_val=(255, 255, 255) # Pad with white background
+        ),
+
+        # Horizontal flip is a very common and effective augmentation.
+        A.HorizontalFlip(p=0.35), # 50% chance of applying (unchanged)
 
         # --- Photometric (Quality & Color) Transformations ---
         A.RandomBrightnessContrast(
-            brightness_limit=0.1,
-            contrast_limit=0.1,
-            p=0.6
+            brightness_limit=0.15, # Reduced from 0.15
+            contrast_limit=0.15,   # Reduced from 0.15
+            p=0.6                 # Reduced from 0.7
         ),
 
         # Grouped blurring and noise effects.
         A.OneOf([
-            A.GaussianBlur(blur_limit=(3, 5), p=1.0), 
-            A.MotionBlur(blur_limit=(3, 5), p=1.0),
-        ], p=0.4), 
+            A.GaussianBlur(blur_limit=(1, 5), p=0.5), # Max blur limit reduced from 7
+            A.MotionBlur(blur_limit=(1, 5), p=0.5), # Max blur limit reduced from 7
+        ], p=0.4), # Reduced from 0.5
 
+        # A.SaltAndPepper(
+        #     p_noise=(0.0, 0.00001), # Affects 0% to 0.5% of pixels
+        #     p=0.2                 # Probability within OneOf
+        # ),
 
         A.OneOf([
             A.SaltAndPepper(
@@ -47,17 +62,17 @@ def create_augmentation_pipeline():
         ], p=1),
         # Very subtle color shifting to maintain product color integrity.
         A.HueSaturationValue(
-            hue_shift_limit=3,
-            sat_shift_limit=10,
-            val_shift_limit=10,
-            p=0.3
+            hue_shift_limit=5,     # Reduced from 5
+            sat_shift_limit=15,     # Reduced from 15
+            val_shift_limit=15,     # Reduced from 15
+            p=0.3                  # Reduced from 0.4
         ),
 
         # Removed Perspective transform as it can be too distorting for small datasets.
     ])
 
 
-def process_images(root_input_dir, root_output_dir, num_augmentations_per_image=25):
+def process_images(root_input_dir, root_output_dir, num_augmentations_per_image=30):
     """
     Scans for class subdirectories in the root input directory, replicates the
     structure in the output directory, and saves augmented images for each class.
@@ -134,10 +149,9 @@ def process_images(root_input_dir, root_output_dir, num_augmentations_per_image=
 if __name__ == '__main__':
     # --- Configuration ---
     # IMPORTANT: Change these paths to your actual directories.
-    INPUT_IMAGE_DIRECTORY = "../car_dataset_same_sized"
-    OUTPUT_IMAGE_DIRECTORY = "./car_dataset_new_aug"
-    IMAGES_PER_ORIGINAL = 6 # Generate 25 new images for each original
-
+    INPUT_IMAGE_DIRECTORY = "D:\\amir_es\\car_accessories_dataset_downsized\\validation"
+    OUTPUT_IMAGE_DIRECTORY = "D:\\amir_es\\car_accessories_dataset_downsized\\validation_aug"
+    IMAGES_PER_ORIGINAL = 5 # Generate 25 new images for each original
 
     # --- Run the Pipeline ---
     process_images(
