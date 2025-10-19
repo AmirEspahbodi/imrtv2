@@ -45,10 +45,17 @@ def create_augmentation_pipeline():
             A.MotionBlur(blur_limit=(1, 5), p=0.5), # Max blur limit reduced from 7
         ], p=0.4), # Reduced from 0.5
 
-        # A.SaltAndPepper(
-        #     p_noise=(0.0, 0.00001), # Affects 0% to 0.5% of pixels
-        #     p=0.2                 # Probability within OneOf
-        # ),
+
+        A.OneOf([
+            A.SaltAndPepper(
+                p_noise=(0.001, 0.1),
+                p=1.0                
+            ),
+            A.GaussNoise(
+                var_limit=(3.0, 10.0),
+                p=1.0                
+            )
+        ], p=1),
 
         A.OneOf([
             A.SaltAndPepper(
