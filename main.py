@@ -10,7 +10,7 @@ import argparse
 # --- Import project components ---
 from src.config import cfg
 from src.data.dataset import CarAccessoriesDataset, get_transforms
-from model.models import CoAtNetSideViTClassifier_4
+from src.model.models import CoAtNetSideViTClassifier_4
 from src.losses.proxy_anchor import ProxyAnchorLoss
 from src.engine.core import Trainer
 from src.model.builder import generate_model
@@ -21,19 +21,48 @@ def main(hydra_cfg):
     """Main function to orchestrate the training process."""
     
     # --- Setup ---
-    device = torch.device(cfg.training.device if torch.cuda.is_available() else "cpu")
+    device = torch.device(cfg.train.device if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
 
     # Create directory for saving checkpoints
     checkpoint_dir = Path("./checkpoints")
     checkpoint_dir.mkdir(exist_ok=True)
 
+    # --- Data Pipeline ---
+    train_transform = get_transforms(cfg.dataset.image_size)
+    val_transform = get_transforms(cfg.dataset.image_size)
     
+    # Initialize datasets (you'll need to provide key_value_generator)
+    train_dataset = CarAccessoriesDataset(
+        hydra_cfg.dataset.preload_path,
+        data_path='E:\\imrtv2\\splited_dataset\\train', 
+        transform=train_transform
+    )
+    val_dataset = CarAccessoriesDataset(
+        hydra_cfg.dataset.preload_path,
+        data_path='E:\\imrtv2\\splited_dataset\\validation', 
+        transform=val_transform
+    )
+
+    train_loader = torch.utils.data.DataLoader(
+        train_dataset,
+        batch_size=cfg.train.batch_size,
+        shuffle=True,
+        num_workers=cfg.train.num_workers,
+        pin_memory=True
+    )
+    val_loader = torch.utils.data.DataLoader(
+        val_dataset,
+        batch_size=cfg.train.batch_size,
+        shuffle=False,
+        num_workers=cfg.train.num_workers,
+        pin_memory=True
+    )
+
     # --- Model, Loss, Optimizer ---
     frozen_encoder, side_vit_model1 = generate_model(hydra_cfg)
     frozen_encoder2, side_vit_model2 = generate_model(hydra_cfg)
     del frozen_encoder2
-    train_dataset, test_dataset, val_dataset = generate_dataset(hydra_cfg)
     
     classifier_with_side_vits = CoAtNetSideViTClassifier_4(
         side_vit1=side_vit_model1,
@@ -47,26 +76,45 @@ def main(hydra_cfg):
         alpha=cfg.loss.alpha
     ).to(device)
     
-    # We combine model and loss parameters for the optimizer
-    # This is necessary because the loss function contains learnable proxies
+    
+    loss_fn = ProxyAnchorLoss(
+        num_classes=cfg.loss.num_classes,
+        embedding_dim=cfg.loss.embedding_dim,  # Now 192
+        margin=cfg.loss.margin,
+        alpha=cfg.loss.alpha
+    ).to(device)
+    
+    # Combine model and loss parameters for the optimizer
     params = list(classifier_with_side_vits.parameters()) + list(loss_fn.parameters())
     optimizer = torch.optim.AdamW(
         params, 
-        lr=cfg.training.learning_rate, 
-        weight_decay=cfg.training.weight_decay
+        lr=cfg.train.learning_rate, 
+        weight_decay=cfg.train.weight_decay
     )
+    
     
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
-        optimizer, T_max=len(train_dataset) * cfg.training.epochs
+        optimizer, T_max=len(train_loader) * cfg.train.epochs
     )
-    scaler = torch.amp.GradScaler()
+    scaler = torch.cuda.amp.GradScaler()
 
     # --- Training ---
-    trainer = Trainer(classifier_with_side_vits, frozen_encoder, train_dataset, val_dataset, loss_fn, optimizer, device, hydra_cfg, scheduler, scaler)
+    trainer = Trainer(
+        model=classifier_with_side_vits,
+        frozen_model=frozen_encoder,
+        train_loader=train_loader,
+        val_loader=val_loader,
+        loss_fn=loss_fn,
+        optimizer=optimizer,
+        device=device,
+        cfg=cfg,
+        scheduler=scheduler,
+        scaler=scaler
+    )
     
     best_accuracy = 0.0
-    for epoch in range(1, cfg.training.epochs + 1):
-        print(f"\n--- Epoch {epoch}/{cfg.training.epochs} ---")
+    for epoch in range(1, cfg.train.epochs + 1):
+        print(f"\n--- Epoch {epoch}/{cfg.train.epochs} ---")
         
         train_loss = trainer.train_one_epoch()
         eval_metrics = trainer.evaluate()
@@ -84,7 +132,7 @@ def main(hydra_cfg):
                 'epoch': epoch,
                 'model_state_dict': classifier_with_side_vits.state_dict(),
                 'optimizer_state_dict': optimizer.state_dict(),
-                'loss_fn_state_dict': loss_fn.state_dict(), # Save proxies as well
+                'loss_fn_state_dict': loss_fn.state_dict(),
                 'accuracy': best_accuracy
             }, checkpoint_dir / "best_model.pth")
 

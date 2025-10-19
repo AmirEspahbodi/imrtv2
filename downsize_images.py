@@ -57,8 +57,8 @@ def resize_images_in_directory(source_dir, dest_dir, target_size=(512, 512)):
 # --- Configuration ---
 if __name__ == "__main__":
     # ❗️ IMPORTANT: Set your source and destination paths here
-    source_directory = "E:\\imrtv2\\augmented_car_accessories_dataset"
-    destination_directory = "E:\\imrtv2\\resized_augmented_car_accessories_dataset"
+    source_directory = "/home/amirh/work/reza_imrt/imrtV2/same_sized_car_dataset"
+    destination_directory = "/home/amirh/work/reza_imrt/imrtV2/downsized_car_dataset"
     
     print("Starting image resizing process...")
     resize_images_in_directory(source_directory, destination_directory)
