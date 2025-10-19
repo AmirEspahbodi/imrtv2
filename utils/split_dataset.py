@@ -42,8 +42,8 @@ def split_class_images(img_paths, strategy='deterministic', seed=None):
 
     n = len(imgs)
     if n >= 6:
-        train = imgs[:5]
-        val = imgs[5:6]
+        train = imgs[:]
+        val = imgs[:]
     elif n == 5:
         # no enough for 6, but follow "mostly train" idea: 4 train + 1 val
         train = imgs[:4]
